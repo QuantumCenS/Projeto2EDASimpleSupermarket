@@ -1,0 +1,8 @@
+//
+// Created by Sergio on 4/25/2026.
+//
+
+#ifndef PROJETO2EDA_SUPERMERCADO_H
+#define PROJETO2EDA_SUPERMERCADO_H
+
+#endif //PROJETO2EDA_SUPERMERCADO_H
