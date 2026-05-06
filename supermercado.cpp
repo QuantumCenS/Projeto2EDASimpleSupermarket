@@ -3,8 +3,10 @@
 #include <fstream>
 #include <cstdlib>
 #include "FilaArmazem.h"
+#include <iomanip>
 
 using namespace std;
+
 
 
 int gerarAleatorio(int min, int max) {
@@ -70,21 +72,28 @@ void adicionarStringFim(NoString*& cabeca, const string& str, int& contador) {
 }
 
 
-void inicializarListaProdutos(ListaProdutos& lista) {
-    lista.inicio = lista.fim = nullptr;
+
+
+void inicializarListaProdutos(NoProduto*& inicio) {
+    inicio = nullptr;
 }
 
-void adicionarProdutoFim(ListaProdutos& lista, const Produto& p) {
+void adicionarProdutoFim(NoProduto*& inicio, const Produto& p) {
     NoProduto* novo = new NoProduto{p, nullptr};
-    if (lista.fim == nullptr) {
-        lista.inicio = lista.fim = novo;
+    if (inicio == nullptr) {
+        inicio = novo;
     } else {
-        lista.fim->prox = novo;
-        lista.fim = novo;
+        NoProduto* atual = inicio;
+        while (atual->prox != nullptr) {
+            atual = atual->prox;
+        }
+        atual->prox = novo;
     }
 }
 
-void inicializarArvore(ArvoreVendas& arv) { arv.raiz = nullptr; }
+void inicializarArvore(NoVenda*& raiz) {
+    raiz = nullptr;
+}
 
 void inserirVendaRec(NoVenda*& raiz, int preco, const string& nome) {
     if (raiz == nullptr) raiz = new NoVenda{preco, nome, nullptr, nullptr};
@@ -92,25 +101,28 @@ void inserirVendaRec(NoVenda*& raiz, int preco, const string& nome) {
     else inserirVendaRec(raiz->dir, preco, nome);
 }
 
-void inserirVenda(ArvoreVendas& arv, int preco, const string& nome) {
-    inserirVendaRec(arv.raiz, preco, nome);
+void inserirVenda(NoVenda*& raiz, int preco, const string& nome) {
+    inserirVendaRec(raiz, preco, nome);
 }
 
-void gerarProdutosParaArmazem(ListaProdutos& armazem, int quantidade, NoString* areasSetores, int nAreasSet, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
+
+
+void gerarProdutosParaArmazem(SuperMercado& sm, int quantidade, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
     for (int i = 0; i < quantidade; i++) {
         Produto p;
         p.nome = obterElementoLista(nomes, gerarAleatorio(0, nNomes - 1));
         p.fornecedor = obterElementoLista(fornecedores, gerarAleatorio(0, nFornec - 1));
-        p.area = obterElementoLista(areasSetores, gerarAleatorio(0, nAreasSet - 1));
-        p.preco = (gerarAleatorio(1, 40)) * 2; // Preço múltiplo de 2 (2 a 80)
+        p.area = obterElementoLista(areas, gerarAleatorio(0, nAreas - 1));
+        p.preco = (gerarAleatorio(1, 40)) * 2;
         p.precoOriginal = p.preco;
-        adicionarProdutoFim(armazem, p);
+
+        Entra(sm.armazem, p);
     }
 }
 
 void inicializarSupermercado(SuperMercado& sm, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
-    sm.setores.inicio = nullptr;
-    Nova(sm.armazem); // Inicializa a Fila em vez da ListaProdutos
+    sm.inicioSectores = nullptr;
+    Nova(sm.armazem);
 
     int nSetores = gerarAleatorio(8, 12);
     NoString* areasAtivas = nullptr;
@@ -118,164 +130,106 @@ void inicializarSupermercado(SuperMercado& sm, NoString* areas, int nAreas, NoSt
     char id = 'A';
 
     for (int i = 0; i < nSetores; i++) {
-        NoSetor* novoSetor = new NoSetor;
-        novoSetor->dados.id = id++;
-        novoSetor->dados.capacidade = gerarAleatorio(5, 10);
-        novoSetor->dados.ocupacao = 0;
-        novoSetor->dados.area = obterElementoLista(areas, gerarAleatorio(0, nAreas - 1));
+        Sector* novoSetor = new Sector; // Substitui o NoSetor do Sérgio
+        novoSetor->id = id++;
+        novoSetor->capacidade = gerarAleatorio(5, 10);
+        novoSetor->ocupacao = 0;
+        novoSetor->area = obterElementoLista(areas, gerarAleatorio(0, nAreas - 1));
 
-        inicializarListaProdutos(novoSetor->dados.produtos);
-        inicializarArvore(novoSetor->dados.vendas);
+        inicializarListaProdutos(novoSetor->inicioProdutos);
+        inicializarArvore(novoSetor->raizVendas);
 
-        cout << "Nome do responsavel pelo sector " << novoSetor->dados.id << " (" << novoSetor->dados.area << "): ";
-        getline(cin, novoSetor->dados.responsavel);
+        cout << "Nome do responsavel pelo sector " << novoSetor->id << " (" << novoSetor->area << "): ";
+        getline(cin, novoSetor->responsavel);
 
-        novoSetor->prox = sm.setores.inicio;
-        sm.setores.inicio = novoSetor;
+        novoSetor->prox = sm.inicioSectores;
+        sm.inicioSectores = novoSetor;
 
-        if (!existeString(areasAtivas, novoSetor->dados.area)) {
-            adicionarStringFim(areasAtivas, novoSetor->dados.area, nAreasAtivas);
+        if (!existeString(areasAtivas, novoSetor->area)) {
+            adicionarStringFim(areasAtivas, novoSetor->area, nAreasAtivas);
         }
     }
 
-    gerarProdutosParaArmazem(sm.armazem, 50, areasAtivas, nAreasAtivas, nomes, nNomes, fornecedores, nFornec);
+    gerarProdutosParaArmazem(sm, 50, areasAtivas, nAreasAtivas, nomes, nNomes, fornecedores, nFornec);
     libertarStrings(areasAtivas);
 }
 
 void venderProdutos(SuperMercado& sm) {
-    // Percorre todos os setores
-    for (NoSetor* ns = sm.setores.inicio; ns != nullptr; ns = ns->prox) {
-        NoProduto* atual = ns->dados.produtos.inicio;
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        NoProduto* atual = s->inicioProdutos;
         NoProduto* anterior = nullptr;
 
         while (atual != nullptr) {
-            // 25% de probabilidade de venda
             bool vendido = (gerarAleatorio(1, 100) <= 25);
             NoProduto* proximo = atual->prox;
 
             if (vendido) {
-                inserirVenda(ns->dados.vendas, atual->info.preco, atual->info.nome);
+                inserirVenda(s->raizVendas, atual->info.preco, atual->info.nome);
 
                 if (anterior == nullptr) {
-                    ns->dados.produtos.inicio = proximo; // Remove do início
+                    s->inicioProdutos = proximo;
                 } else {
-                    anterior->prox = proximo; // Remove do meio/fim
-                }
-
-                if (atual == ns->dados.produtos.fim) {
-                    ns->dados.produtos.fim = anterior;
+                    anterior->prox = proximo;
                 }
 
                 delete atual;
-                ns->dados.ocupacao--;
+                s->ocupacao--;
             } else {
-                anterior = atual; // Não vendeu, avança o ponteiro anterior
+                anterior = atual;
             }
-            atual = proximo; // Avança para o próximo produto
+            atual = proximo;
         }
     }
 }
 
 void transferirArmazemParaSetores(SuperMercado& sm, int maxTransferir) {
     int colocados = 0;
-    int tamanhoArmazem = Comprimento(sm.armazem); // Vê quantos produtos existem
+    int tamanhoArmazem = Comprimento(sm.armazem);
 
-    // Só iteramos o número de produtos que estavam inicialmente no armazém
     for (int i = 0; i < tamanhoArmazem && colocados < maxTransferir; i++) {
         if (Vazia(sm.armazem)) break;
 
-        Produto prod = Primeiro(sm.armazem); // 1. Espreita o primeiro produto
-        Sai(sm.armazem);                     // 2. Tira o produto da fila
+        Produto prod = Primeiro(sm.armazem);
+        Sai(sm.armazem);
 
-        NoSetor* setorAlvo = nullptr;
+        Sector* setorAlvo = nullptr;
 
-        // Procurar setor adequado
-        for (NoSetor* ns = sm.setores.inicio; ns != nullptr; ns = ns->prox) {
-            if (ns->dados.area == prod.area && ns->dados.ocupacao < ns->dados.capacidade) {
-                setorAlvo = ns;
+        for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+            if (s->area == prod.area && s->ocupacao < s->capacidade) {
+                setorAlvo = s;
                 break;
             }
         }
 
         if (setorAlvo != nullptr) {
-            // Coube no setor!
-            adicionarProdutoFim(setorAlvo->dados.produtos, prod);
-            setorAlvo->dados.ocupacao++;
+            adicionarProdutoFim(setorAlvo->inicioProdutos, prod);
+            setorAlvo->ocupacao++;
             colocados++;
         } else {
-            // CASO ESPECIAL: Não cabe / Setor cheio.
-            // Volta a entrar no armazém (vai para o fim da fila)
             Entra(sm.armazem, prod);
         }
     }
 }
 
-void simularCiclo(SuperMercado& sm, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
+// Alterei a assinatura para receber o 'areas' e 'nAreas' globais
+void simularCiclo(SuperMercado& sm, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
+
+    // Tentar vender os produtos que estão nas prateleiras
     venderProdutos(sm);
 
-    // Identificar áreas ativas para garantir que os novos produtos pertencem a áreas válidas
-    NoString* areasAtivas = nullptr;
-    int nAreasAtivas = 0;
-    for (NoSetor* ns = sm.setores.inicio; ns != nullptr; ns = ns->prox) {
-        if (!existeString(areasAtivas, ns->dados.area)) {
-            adicionarStringFim(areasAtivas, ns->dados.area, nAreasAtivas);
-        }
-    }
+    // Gerar 10 produtos usando todas as áreas do sistema (incluindo as novas que possam ter sido criadas)
+    gerarProdutosParaArmazem(sm, 10, areas, nAreas, nomes, nNomes, fornecedores, nFornec);
 
-    // Criação de 10 novos produtos aleatórios e adição ao armazém
-    gerarProdutosParaArmazem(sm.armazem, 10, areasAtivas, nAreasAtivas, nomes, nNomes, fornecedores, nFornec);
-
-    libertarStrings(areasAtivas); // Limpeza de memória
-
-    // Transferência para os setores
+    // Tentar passar produtos do armazém para os setores
     transferirArmazemParaSetores(sm, 10);
 }
 
 
-void gerarProdutosParaArmazem(FilaArmazem& armazem, int quantidade, NoString* areasSetores, int nAreasSet, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
-    for (int i = 0; i < quantidade; i++) {
-        Produto p;
-        p.nome = obterElementoLista(nomes, gerarAleatorio(0, nNomes - 1));
-        p.fornecedor = obterElementoLista(fornecedores, gerarAleatorio(0, nFornec - 1));
-        p.area = obterElementoLista(areasSetores, gerarAleatorio(0, nAreasSet - 1));
-        p.preco = (gerarAleatorio(1, 40)) * 2;
-        p.precoOriginal = p.preco;
 
-        Entra(armazem, p); // Usar a função da Fila
-    }
-}
-
-void imprimirProdutos(const SuperMercado& sm) {
-    cout << "\n===== SUPERMERCADO =====\n";
-    for (NoSetor* ns = sm.setores.inicio; ns != nullptr; ns = ns->prox) {
-        cout << "--- Sector:" << ns->dados.id
-             << " | Responsavel: " << ns->dados.responsavel
-             << " | Capacidade: " << ns->dados.capacidade
-             << " | Produtos: " << ns->dados.ocupacao
-             << " | Area: " << ns->dados.area << " ---\n";
-        for (NoProduto* p = ns->dados.produtos.inicio; p != nullptr; p = p->prox)
-            cout << "Produto: " << p->info.nome << " | Preco: " << p->info.preco << " Euros\n";
-    }
-
-    cout << "\n--- Armazem ---\n";
-    // TRUQUE DA FILA: Rotação para imprimir sem perder dados
-    SuperMercado& sm_mut = const_cast<SuperMercado&>(sm); // Permite mexer na fila localmente
-    int total = Comprimento(sm_mut.armazem);
-
-    for (int i = 0; i < total; i++) {
-        Produto p = Primeiro(sm_mut.armazem);
-        Sai(sm_mut.armazem);
-
-        cout << "Produto: " << p.nome << " | Preco: " << p.preco << " Euros | Area: " << p.area << "\n";
-
-        Entra(sm_mut.armazem, p); // Volta a guardar
-    }
-}
 
 void removerProdutoGlobal(SuperMercado& sm, const string& nome) {
-    // 1. Remover dos setores (Mantém-se a lógica de lista ligada)
-    for (NoSetor* ns = sm.setores.inicio; ns != nullptr; ns = ns->prox) {
-        NoProduto* atual = ns->dados.produtos.inicio;
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        NoProduto* atual = s->inicioProdutos;
         NoProduto* anterior = nullptr;
         int cont = 0;
 
@@ -283,9 +237,7 @@ void removerProdutoGlobal(SuperMercado& sm, const string& nome) {
             if (atual->info.nome == nome) {
                 NoProduto* apagar = atual;
                 if (anterior) anterior->prox = atual->prox;
-                else ns->dados.produtos.inicio = atual->prox;
-
-                if (apagar == ns->dados.produtos.fim) ns->dados.produtos.fim = anterior;
+                else s->inicioProdutos = atual->prox;
 
                 atual = atual->prox;
                 delete apagar;
@@ -295,16 +247,14 @@ void removerProdutoGlobal(SuperMercado& sm, const string& nome) {
                 cont++;
             }
         }
-        ns->dados.ocupacao = cont;
+        s->ocupacao = cont;
     }
 
-    // 2. Remover do Armazém usando as regras da FILA
     int total = Comprimento(sm.armazem);
     for (int i = 0; i < total; i++) {
         Produto p = Primeiro(sm.armazem);
-        Sai(sm.armazem); // Tira da fila
+        Sai(sm.armazem);
 
-        // Só volta a entrar se NÃO for para apagar
         if (p.nome != nome) {
             Entra(sm.armazem, p);
         }
@@ -323,7 +273,7 @@ void atualizarPrecoArmazem(SuperMercado& sm, const string& nome, int novoPreco) 
             p.precoOriginal = novoPreco;
         }
 
-        Entra(sm.armazem, p); // Volta para a fila (atualizado ou não)
+        Entra(sm.armazem, p);
     }
 }
 
@@ -331,16 +281,14 @@ void adicionarCampanha(SuperMercado& sm, const string& area, int percentagem, in
     Campanha* nova = new Campanha{area, percentagem, duracao, sm.campanhas};
     sm.campanhas = nova;
 
-    // Aplicar aos setores
-    for (NoSetor* ns = sm.setores.inicio; ns != nullptr; ns = ns->prox) {
-        if (ns->dados.area == area) {
-            for (NoProduto* p = ns->dados.produtos.inicio; p != nullptr; p = p->prox) {
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        if (s->area == area) {
+            for (NoProduto* p = s->inicioProdutos; p != nullptr; p = p->prox) {
                 p->info.preco = p->info.precoOriginal * (100 - percentagem) / 100;
             }
         }
     }
 
-    // Aplicar ao armazém usando as regras da FILA
     int total = Comprimento(sm.armazem);
     for (int i = 0; i < total; i++) {
         Produto p = Primeiro(sm.armazem);
@@ -354,31 +302,90 @@ void adicionarCampanha(SuperMercado& sm, const string& area, int percentagem, in
     }
 }
 
+
+
+void imprimirProdutos(const SuperMercado& sm) {
+    // 1. Percorrer Sectores e Produtos
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        // Formatação exata do cabeçalho do sector (sem espaço depois de Sector:)
+        cout << "Sector:" << s->id
+             << " | Responsavel: " << s->responsavel
+             << " | Capacidade: " << s->capacidade
+             << " | Produtos: " << s->ocupacao
+             << " | Area: " << s->area << "\n";
+
+        for (NoProduto* p = s->inicioProdutos; p != nullptr; p = p->prox) {
+            // Formatação exata do produto (com espaço antes dos dois pontos no Preço)
+            cout << "Produto: " << p->info.nome << " | Preco : " << p->info.preco << " Euros\n";
+        }
+        // Exatamente 50 traços de separador
+        cout << "--------------------------------------------------\n";
+    }
+
+    // 2. Percorrer Armazém
+    cout << "Armazem:\n";
+
+    // Cabeçalho da Tabela
+    cout << left << setw(30) << " PRODUTO"
+         << " | " << setw(25) << "AREA"
+         << " | " << "PRECO" << "\n";
+    cout << "-------------------------------|---------------------------|------------------\n";
+
+    SuperMercado& sm_mut = const_cast<SuperMercado&>(sm);
+    int total = Comprimento(sm_mut.armazem);
+
+    if (total == 0) {
+        cout << "                         ( Armazem sem stock )                         \n";
+    } else {
+        for (int i = 0; i < total; i++) {
+            Produto p = Primeiro(sm_mut.armazem);
+            Sai(sm_mut.armazem);
+
+            // Imprime apenas Nome, Área e Preço[cite: 1]
+            cout << " " << left << setw(29) << p.nome
+                 << " | " << setw(25) << p.area
+                 << " | " << right << setw(3) << p.preco << " EUR\n";
+
+            Entra(sm_mut.armazem, p);
+        }
+    }
+    cout << "===============================================================================\n\n";
+}
 void criarNovaArea(NoString*& areas, int& nAreas, const string& novaArea) {
     adicionarStringFim(areas, novaArea, nAreas);
 }
 
-// Funções auxiliares para mostrar registo de vendas
 void percorrerInOrder(NoVenda* no) {
     if (no == nullptr) return;
     percorrerInOrder(no->esq);
-    cout << "   " << no->nome << " - " << no->preco << " Euros\n";
+    cout << "Produto: " << no->nome << " | Preco: " << no->preco << " Euros\n";
     percorrerInOrder(no->dir);
 }
 
 void mostrarRegistoVendas(const SuperMercado& sm, const string& responsavel) {
     bool encontrou = false;
-    for (NoSetor* ns = sm.setores.inicio; ns != nullptr; ns = ns->prox) {
-        if (ns->dados.responsavel == responsavel) {
-            cout << "\nSector " << ns->dados.id << " (" << ns->dados.area << "):\n";
-            percorrerInOrder(ns->dados.vendas.raiz);
+
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        if (s->responsavel == responsavel) {
+            cout << "\nSector " << s->id << " (" << s->area << "):\n";
+
+            if (s->raizVendas == nullptr) {
+                cout << "   -> Ainda nao foram registadas vendas neste sector.\n";
+            } else {
+                percorrerInOrder(s->raizVendas);
+            }
+
             encontrou = true;
         }
     }
-    if (!encontrou) cout << "Nenhum sector encontrado com esse responsavel.\n";
+
+    if (!encontrou) {
+        cout << "[ERRO] Nenhum sector encontrado com o responsavel: " << responsavel << "\n";
+    }
 }
 
-// Stubs (Implementações base) para o Gravar/Carregar não bloquearem o código
+
+
 bool gravarSupermercado(const SuperMercado& sm, const string& filename) {
     cout << "A gravar estado para " << filename << "..." << endl;
     return true;
@@ -386,5 +393,10 @@ bool gravarSupermercado(const SuperMercado& sm, const string& filename) {
 
 bool carregarSupermercado(SuperMercado& sm, const string& filename) {
     cout << "A carregar estado de " << filename << "..." << endl;
-    return false; // Retorna false para simular um "novo jogo" por padrão
+    return false;
 }
+
+
+
+
+

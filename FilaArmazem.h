@@ -10,7 +10,7 @@
 
 #include <string>
 
-// Definição da estrutura Produto
+
 struct Produto {
     std::string nome;
     std::string fornecedor;
@@ -20,12 +20,13 @@ struct Produto {
 };
 
 // Estrutura da Fila adaptada
+struct NoArmazem {
+    Produto valor;
+    NoArmazem* seguinte;
+};
+
 struct FilaArmazem {
-    struct Item {
-        Produto valor;      // O valor guardado passa a ser o Produto em vez de um int
-        Item* seguinte;     // Apontador para o próximo nó
-    };
-    Item* primeiro;         // Apontador para o início da fila
+    NoArmazem* primeiro;
 };
 
 // Declarações das funções padrão de manipulação da Fila

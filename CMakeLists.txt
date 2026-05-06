@@ -10,4 +10,6 @@ add_executable(Projeto2EDA
         supermercado.cpp
         supermercado.h
         FilaArmazem.cpp
-        FilaArmazem.h)
+        FilaArmazem.h
+        menu.cpp
+        menu.h)

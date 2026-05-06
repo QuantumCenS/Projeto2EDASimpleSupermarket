@@ -15,13 +15,14 @@ void Nova(FilaArmazem &f) {
 
 // Insere um novo produto no fim da fila
 void Entra(FilaArmazem &f, Produto elemento) {
-    FilaArmazem::Item *novo = new FilaArmazem::Item;
+    // ATUALIZADO: Usar NoArmazem em vez de FilaArmazem::Item
+    NoArmazem *novo = new NoArmazem;
     novo->valor = elemento;
     novo->seguinte = nullptr;
 
     // Se a fila não estiver vazia, percorre até ao fim
     if (!Vazia(f)) {
-        FilaArmazem::Item *aux = f.primeiro;
+        NoArmazem *aux = f.primeiro;
         while (aux->seguinte != nullptr) {
             aux = aux->seguinte;
         }
@@ -41,7 +42,8 @@ bool Vazia(FilaArmazem &f) {
 // Remove o primeiro elemento da fila (FIFO)
 void Sai(FilaArmazem &f) {
     if (!Vazia(f)) {
-        FilaArmazem::Item *sai = f.primeiro;
+        // ATUALIZADO: Usar NoArmazem
+        NoArmazem *sai = f.primeiro;
         f.primeiro = sai->seguinte;
         sai->seguinte = nullptr;
         delete sai;
@@ -67,7 +69,8 @@ Produto Primeiro(FilaArmazem &f) {
 int Comprimento(FilaArmazem &f) {
     int comp = 0;
     if (!Vazia(f)) {
-        FilaArmazem::Item *aux = f.primeiro;
+        // ATUALIZADO: Usar NoArmazem
+        NoArmazem *aux = f.primeiro;
         while (aux != nullptr) {
             comp++;
             aux = aux->seguinte;
@@ -79,7 +82,8 @@ int Comprimento(FilaArmazem &f) {
 // Escreve o conteúdo da fila na consola para efeitos de visualização
 void Escreve(FilaArmazem &f) {
     if (!Vazia(f)) {
-        FilaArmazem::Item *aux = f.primeiro;
+        // ATUALIZADO: Usar NoArmazem
+        NoArmazem *aux = f.primeiro;
         while (aux != nullptr) {
             // Adaptação da visualização para mostrar dados do Produto
             cout << "[" << aux->valor.nome << " (" << aux->valor.area << ")] -> ";
