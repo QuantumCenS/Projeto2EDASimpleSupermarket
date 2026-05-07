@@ -3,13 +3,13 @@
 
 #include <string>
 #include "FilaArmazem.h" // Inclui a struct Produto e a implementação da Fila
-
+using namespace std;
 
 #include <string>
 
 
 struct NoString {
-    std::string texto;
+    string texto;
     NoString* prox;
 };
 
@@ -20,7 +20,7 @@ struct NoString {
 // Apenas precisamos do nó. A struct "ArvoreVendas" desaparece.
 struct NoVenda {
     int preco;
-    std::string nome;
+    string nome;
     NoVenda* esq;
     NoVenda* dir;
 };
@@ -37,8 +37,8 @@ struct NoProduto {
 // Desaparecem as structs "NoSetor" e "ListaSetores".
 struct Sector {
     char id;
-    std::string responsavel;
-    std::string area;
+    string responsavel;
+    string area;
     int capacidade;
     int ocupacao;
 
@@ -50,7 +50,7 @@ struct Sector {
 
 
 struct Campanha {
-    std::string area;
+    string area;
     int percentagem;
     int duracao;
     Campanha* prox;
@@ -70,10 +70,10 @@ struct SuperMercado {
 // FUNÇÕES UTILITÁRIAS E STRINGS
 int gerarAleatorio(int min, int max);
 NoString* carregarStrings(const std::string& filename, int& total);
-std::string obterElementoLista(NoString* cabeca, int indice);
+string obterElementoLista(NoString* cabeca, int indice);
 void libertarStrings(NoString* cabeca);
-bool existeString(NoString* cabeca, const std::string& str);
-void adicionarStringFim(NoString*& cabeca, const std::string& str, int& contador);
+bool existeString(NoString* cabeca, const string& str);
+void adicionarStringFim(NoString*& cabeca, const string& str, int& contador);
 
 // Funções para gerir os Produtos nos Setores (Atualizado sem a struct ListaProdutos)
 void inicializarListaProdutos(NoProduto*& inicio);
@@ -83,7 +83,7 @@ void adicionarProdutoFim(NoProduto*& inicio, const Produto& p);
 
 // Funções para gerir a Árvore de Vendas (Atualizado sem a struct ArvoreVendas)
 void inicializarArvore(NoVenda*& raiz);
-void inserirVenda(NoVenda*& raiz, int preco, const std::string& nome);
+void inserirVenda(NoVenda*& raiz, int preco, const string& nome);
 
 void inicializarSupermercado(SuperMercado& sm, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec);
 
@@ -96,14 +96,14 @@ void venderProdutos(SuperMercado& sm);
 void transferirArmazemParaSetores(SuperMercado& sm, int maxTransferir);
 
 // Funções de Gestão (em falta a de gravar e carregar)
-void removerProdutoGlobal(SuperMercado& sm, const std::string& nome);
-void atualizarPrecoArmazem(SuperMercado& sm, const std::string& nome, int novoPreco);
-void adicionarCampanha(SuperMercado& sm, const std::string& area, int percentagem, int duracao);
-bool gravarSupermercado(const SuperMercado& sm, const std::string& filename);
-bool carregarSupermercado(SuperMercado& sm, const std::string& filename);
+bool removerProdutoGlobal(SuperMercado& sm, const string& nome);
+bool atualizarPrecoArmazem(SuperMercado& sm, const string& nome, int novoPreco);
+bool adicionarCampanha(SuperMercado& sm, const string& area, int percentagem, int duracao);
+bool gravarSupermercado(const SuperMercado& sm, const string& filename);
+bool carregarSupermercado(SuperMercado& sm, const string& filename);
 
 
 void imprimirProdutos(const SuperMercado& sm);
-void criarNovaArea(NoString*& areas, int& nAreas, const std::string& novaArea);
-void mostrarRegistoVendas(const SuperMercado& sm, const std::string& responsavel);
+bool criarNovaArea(NoString*& areas, int& nAreas, const string& novaArea);
+bool mostrarRegistoVendas(const SuperMercado& sm, const string& responsavel);
 #endif

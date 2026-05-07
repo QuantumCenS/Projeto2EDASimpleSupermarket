@@ -227,7 +227,8 @@ void simularCiclo(SuperMercado& sm, NoString* areas, int nAreas, NoString* nomes
 
 
 
-void removerProdutoGlobal(SuperMercado& sm, const string& nome) {
+bool removerProdutoGlobal(SuperMercado& sm, const string& nome) {
+    bool encontrou=false;
     for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
         NoProduto* atual = s->inicioProdutos;
         NoProduto* anterior = nullptr;
@@ -235,6 +236,7 @@ void removerProdutoGlobal(SuperMercado& sm, const string& nome) {
 
         while (atual != nullptr) {
             if (atual->info.nome == nome) {
+                encontrou=true;
                 NoProduto* apagar = atual;
                 if (anterior) anterior->prox = atual->prox;
                 else s->inicioProdutos = atual->prox;
@@ -258,10 +260,15 @@ void removerProdutoGlobal(SuperMercado& sm, const string& nome) {
         if (p.nome != nome) {
             Entra(sm.armazem, p);
         }
+        else {
+            encontrou=true;
+        }
     }
+    return encontrou;
 }
 
-void atualizarPrecoArmazem(SuperMercado& sm, const string& nome, int novoPreco) {
+bool atualizarPrecoArmazem(SuperMercado& sm, const string& nome, int novoPreco) {
+    bool atualizou=false;
     int total = Comprimento(sm.armazem);
 
     for (int i = 0; i < total; i++) {
@@ -271,20 +278,22 @@ void atualizarPrecoArmazem(SuperMercado& sm, const string& nome, int novoPreco) 
         if (p.nome == nome) {
             p.preco = novoPreco;
             p.precoOriginal = novoPreco;
+            atualizou=true;
         }
-
         Entra(sm.armazem, p);
     }
+
+    return atualizou;
 }
 
-void adicionarCampanha(SuperMercado& sm, const string& area, int percentagem, int duracao) {
-    Campanha* nova = new Campanha{area, percentagem, duracao, sm.campanhas};
-    sm.campanhas = nova;
+bool adicionarCampanha(SuperMercado& sm, const string& area, int percentagem, int duracao) {
+    bool aplicouDesconto = false;
 
     for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
         if (s->area == area) {
             for (NoProduto* p = s->inicioProdutos; p != nullptr; p = p->prox) {
                 p->info.preco = p->info.precoOriginal * (100 - percentagem) / 100;
+                aplicouDesconto = true;
             }
         }
     }
@@ -296,10 +305,17 @@ void adicionarCampanha(SuperMercado& sm, const string& area, int percentagem, in
 
         if (p.area == area) {
             p.preco = p.precoOriginal * (100 - percentagem) / 100;
+            aplicouDesconto = true;
         }
 
         Entra(sm.armazem, p);
     }
+    if (aplicouDesconto) {
+        Campanha* nova = new Campanha{area, percentagem, duracao, sm.campanhas};
+        sm.campanhas = nova;
+        return true;
+    }
+    return false;
 }
 
 
@@ -351,8 +367,15 @@ void imprimirProdutos(const SuperMercado& sm) {
     }
     cout << "===============================================================================\n\n";
 }
-void criarNovaArea(NoString*& areas, int& nAreas, const string& novaArea) {
+bool criarNovaArea(NoString*& areas, int& nAreas, const string& novaArea) {
+    for (NoString* atual = areas; atual != nullptr; atual = atual->prox) {
+        if (atual->texto == novaArea) {
+            return false; // A área já existe! Aborta.
+        }
+    }
+
     adicionarStringFim(areas, novaArea, nAreas);
+    return true;
 }
 
 void percorrerInOrder(NoVenda* no) {
@@ -362,7 +385,7 @@ void percorrerInOrder(NoVenda* no) {
     percorrerInOrder(no->dir);
 }
 
-void mostrarRegistoVendas(const SuperMercado& sm, const string& responsavel) {
+bool mostrarRegistoVendas(const SuperMercado& sm, const string& responsavel) {
     bool encontrou = false;
 
     for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
@@ -374,14 +397,11 @@ void mostrarRegistoVendas(const SuperMercado& sm, const string& responsavel) {
             } else {
                 percorrerInOrder(s->raizVendas);
             }
-
             encontrou = true;
         }
     }
 
-    if (!encontrou) {
-        cout << "[ERRO] Nenhum sector encontrado com o responsavel: " << responsavel << "\n";
-    }
+    return encontrou;
 }
 
 

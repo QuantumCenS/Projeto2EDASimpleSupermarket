@@ -58,7 +58,7 @@ int main(int argc, char* argv[]) {
         imprimirProdutos(super);
 
         // Menu Gestao
-        cout << "(s)eguinte  **********  (g)estao\n";
+        cout << "(s)eguinte  **********  (g)estao  **********  (q)sair\n";
         cout << "Seleccione a sua opcao: ";
 
         cin >> opcao;

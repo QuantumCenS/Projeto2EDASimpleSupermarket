@@ -16,34 +16,75 @@ void interfaceRemoverProduto(SuperMercado& sm) {
     cout << "-> Introduza o nome do produto a remover: ";
     getline(cin >> ws, nomeProd);
 
-    removerProdutoGlobal(sm, nomeProd);
-    cout << "[AVISO] Produto removido (caso existisse no sistema).\n";
+    bool sucesso = removerProdutoGlobal(sm, nomeProd);
+
+    if (sucesso) {
+        cout << "O produto '" << nomeProd << "' foi removido de todo o supermercado!\n";
+    } else {
+        cout << "O produto '" << nomeProd << "' nao existe em nenhum sector nem no armazem.\n";
+    }
 }
 
 void interfaceAtualizarPreco(SuperMercado& sm) {
     string nomeProd;
     int novoPreco;
+
     cout << "-> Introduza o nome do produto: ";
     getline(cin >> ws, nomeProd);
+
     cout << "-> Introduza o novo preco: ";
     cin >> novoPreco;
 
-    atualizarPrecoArmazem(sm, nomeProd, novoPreco);
-    cout << "[AVISO] Preco atualizado no armazem!\n";
+    if (cin.fail()) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Preco invalido! Por favor, introduza apenas numeros inteiros.\n";
+        return; // Sai da função antes de estragar a Fila!
+    }
+
+    bool sucesso= atualizarPrecoArmazem(sm, nomeProd, novoPreco);
+
+    if (sucesso) {
+        cout << "Preco do produto '" << nomeProd << "' atualizado no armazem!\n";
+    } else {
+        cout << "O produto '" << nomeProd << "' nao existe no armazem.\n";
+    }
 }
 
 void interfaceIniciarCampanha(SuperMercado& sm) {
     string area;
     int perc, duracao;
+
     cout << "-> Introduza a area da campanha: ";
     getline(cin >> ws, area);
+
     cout << "-> Percentagem de desconto (ex: 20): ";
     cin >> perc;
+
+    if (cin.fail() || perc <= 0 || perc >= 100) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Percentagem invalida! Introduza um numero entre 1 e 99.\n";
+        return;
+    }
+
     cout << "-> Duracao da campanha (em ciclos): ";
     cin >> duracao;
 
-    adicionarCampanha(sm, area, perc, duracao);
-    cout << "[AVISO] Campanha iniciada com sucesso!\n";
+    if (cin.fail() || duracao <= 0) {
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        cout << "Duracao invalida! Introduza um numero inteiro positivo.\n";
+        return;
+    }
+
+    bool sucesso=adicionarCampanha(sm, area, perc, duracao);
+
+    if (sucesso) {
+        cout << "Campanha de " << perc << "% na area '" << area << "' iniciada por " << duracao << " ciclos!\n";
+    } else {
+        cout << "Nao foi possivel iniciar a campanha. A area '" << area << "' nao foi encontrada ou esta vazia.\n";
+    }
 }
 
 void interfaceCriarArea(NoString*& areasAtivas, int& nAreasAtivas) {
@@ -51,16 +92,29 @@ void interfaceCriarArea(NoString*& areasAtivas, int& nAreasAtivas) {
     cout << "-> Introduza o nome da nova area: ";
     getline(cin >> ws, novaArea);
 
-    criarNovaArea(areasAtivas, nAreasAtivas, novaArea);
-    cout << "[AVISO] Area '" << novaArea << "' adicionada aos registos.\n";
-}
+    if (novaArea.empty()) {
+        cout << "[ERRO] O nome da area nao pode estar vazio!\n";
+        return;
+    }
+
+    bool sucesso=criarNovaArea(areasAtivas, nAreasAtivas, novaArea);
+
+    if (sucesso) {
+        cout << "Area '" << novaArea << "' adicionada aos registos.\n";
+    } else {
+        cout << "A area '" << novaArea << "' ja existe no sistema!\n";
+    }}
 
 void interfaceRegistoVendas(SuperMercado& sm) {
     string nomeResp;
     cout << "-> Introduza o nome do responsavel a pesquisar: ";
     getline(cin >> ws, nomeResp);
 
-    mostrarRegistoVendas(sm, nomeResp);
+    bool sucesso = mostrarRegistoVendas(sm, nomeResp);
+
+    if (!sucesso) {
+        cout << "Nenhum sector encontrado com o responsavel: '" << nomeResp << "'\n";
+    }
 }
 
 

@@ -10,13 +10,14 @@
 
 #include <string>
 
+using namespace std;
 
 struct Produto {
-    std::string nome;
-    std::string fornecedor;
+    string nome;
+    string fornecedor;
     int preco;
     int precoOriginal;
-    std::string area;
+    string area;
 };
 
 // Estrutura da Fila adaptada
