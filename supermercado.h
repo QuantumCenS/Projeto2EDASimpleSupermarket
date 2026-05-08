@@ -99,11 +99,16 @@ void transferirArmazemParaSetores(SuperMercado& sm, int maxTransferir);
 bool removerProdutoGlobal(SuperMercado& sm, const string& nome);
 bool atualizarPrecoArmazem(SuperMercado& sm, const string& nome, int novoPreco);
 bool adicionarCampanha(SuperMercado& sm, const string& area, int percentagem, int duracao);
-bool gravarSupermercado(const SuperMercado& sm, const string& filename);
+bool gravarSupermercado( SuperMercado& sm, const string& filename);
 bool carregarSupermercado(SuperMercado& sm, const string& filename);
 
 
 void imprimirProdutos(const SuperMercado& sm);
 bool criarNovaArea(NoString*& areas, int& nAreas, const string& novaArea);
 bool mostrarRegistoVendas(const SuperMercado& sm, const string& responsavel);
+
+void limparSupermercado(SuperMercado& sm);
+void limparArvore(NoVenda* raiz);
+void gravarVendasRec(NoVenda* raiz, char sectorID, ofstream& out);
+Sector* encontrarSector(SuperMercado& sm, char id);
 #endif

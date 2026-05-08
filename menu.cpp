@@ -117,6 +117,30 @@ void interfaceRegistoVendas(SuperMercado& sm) {
     }
 }
 
+void interfaceGravar(SuperMercado& sm) {
+    string ficheiro;
+    cout << "-> Introduza o nome do ficheiro para guardar (ex: save1.txt): ";
+    getline(cin >> ws, ficheiro);
+
+    if (gravarSupermercado(sm, ficheiro)) {
+        cout << "[SUCESSO] Supermercado gravado no ficheiro '" << ficheiro << "'!\n";
+    } else {
+        cout << "[ERRO] Nao foi possivel criar o ficheiro.\n";
+    }
+}
+
+void interfaceCarregar(SuperMercado& sm) {
+    string ficheiro;
+    cout << "-> Introduza o nome do ficheiro a carregar (ex: save1.txt): ";
+    getline(cin >> ws, ficheiro);
+
+    if (carregarSupermercado(sm, ficheiro)) {
+        cout << "[SUCESSO] Supermercado carregado com sucesso!\n";
+    } else {
+        cout << "[ERRO] Ficheiro nao encontrado ou corrompido.\n";
+    }
+}
+
 
 void menuGestao(SuperMercado& sm, NoString*& areasAtivas, int& nAreasAtivas) {
     int opcaoMenu;
@@ -144,12 +168,8 @@ void menuGestao(SuperMercado& sm, NoString*& areasAtivas, int& nAreasAtivas) {
             case 1: interfaceRemoverProduto(sm); break;
             case 2: interfaceAtualizarPreco(sm); break;
             case 3: interfaceIniciarCampanha(sm); break;
-            case 4:
-                cout << "[AVISO] A gravar...\n";
-                break;
-            case 5:
-                cout << "[AVISO] A carregar...\n";
-                break;
+            case 4: interfaceGravar(sm); break;
+            case 5: interfaceCarregar(sm); break;
             case 6: imprimirProdutos(sm); break;
             case 7: interfaceCriarArea(areasAtivas, nAreasAtivas); break;
             case 8: interfaceRegistoVendas(sm); break;

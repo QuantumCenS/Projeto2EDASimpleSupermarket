@@ -4,6 +4,8 @@
 #include <cstdlib>
 #include "FilaArmazem.h"
 #include <iomanip>
+#include <sstream>
+#include <string>
 
 using namespace std;
 
@@ -108,11 +110,31 @@ void inserirVenda(NoVenda*& raiz, int preco, const string& nome) {
 
 
 void gerarProdutosParaArmazem(SuperMercado& sm, int quantidade, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
+    // NOVIDADE: Conta quantos sectores existem no supermercado
+    // (Fazemos isto fora do ciclo para não desperdiçar processamento)
+    int numSectores = 0;
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        numSectores++;
+    }
+
+    // Proteção de segurança: se o supermercado não tiver sectores, não gera nada!
+    if (numSectores == 0) return;
+
     for (int i = 0; i < quantidade; i++) {
         Produto p;
         p.nome = obterElementoLista(nomes, gerarAleatorio(0, nNomes - 1));
         p.fornecedor = obterElementoLista(fornecedores, gerarAleatorio(0, nFornec - 1));
-        p.area = obterElementoLista(areas, gerarAleatorio(0, nAreas - 1));
+
+        // --- A MAGIA ACONTECE AQUI ---
+        // Em vez de ler das 'areas' globais, escolhemos um sector à sorte!
+        int sectorEscolhido = rand() % numSectores;
+        Sector* sAux = sm.inicioSectores;
+        for (int j = 0; j < sectorEscolhido; j++) {
+            sAux = sAux->prox;
+        }
+        p.area = sAux->area; // O produto recebe a área legítima do sector!
+        // -----------------------------
+
         p.preco = (gerarAleatorio(1, 40)) * 2;
         p.precoOriginal = p.preco;
 
@@ -406,16 +428,197 @@ bool mostrarRegistoVendas(const SuperMercado& sm, const string& responsavel) {
 
 
 
-bool gravarSupermercado(const SuperMercado& sm, const string& filename) {
-    cout << "A gravar estado para " << filename << "..." << endl;
+bool gravarSupermercado(SuperMercado& sm, const string& filename) {
+    ofstream out(filename);
+    if (!out.is_open()) return false;
+
+    // A. Gravar Sectores e os seus Produtos
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        out << "SECTOR|" << s->id << "|" << s->capacidade << "|" << s->area << "|" << s->responsavel << "\n";
+
+        for (NoProduto* p = s->inicioProdutos; p != nullptr; p = p->prox) {
+            out << "P_SEC|" << s->id << "|" << p->info.nome << "|" << p->info.area << "|"
+                << p->info.fornecedor << "|" << p->info.preco << "|" << p->info.precoOriginal << "\n";
+        }
+
+        // B. Gravar Vendas (Árvore) - Usamos uma função auxiliar
+        gravarVendasRec(s->raizVendas, s->id, out);
+    }
+
+    // C. Gravar Armazém (Dando a volta à "Roda Gigante")
+    int total = Comprimento(sm.armazem);
+    for (int i = 0; i < total; i++) {
+        Produto p = Primeiro(sm.armazem);
+        Sai(sm.armazem);
+        out << "P_ARM|" << p.nome << "|" << p.area << "|" << p.fornecedor << "|" << p.preco << "|" << p.precoOriginal << "\n";
+        Entra(sm.armazem, p);
+    }
+
+    // D. Gravar Campanhas
+    for (Campanha* c = sm.campanhas; c != nullptr; c = c->prox) {
+        out << "CAMP|" << c->area << "|" << c->percentagem << "|" << c->duracao << "\n";
+    }
+
+    out.close();
     return true;
 }
 
 bool carregarSupermercado(SuperMercado& sm, const string& filename) {
-    cout << "A carregar estado de " << filename << "..." << endl;
-    return false;
+    ifstream in(filename);
+    if (!in.is_open()) return false;
+
+    // 1. LIMPAR A MEMÓRIA ATUAL
+    // Muito importante para não misturar dados de sessões diferentes!
+    limparSupermercado(sm);
+
+    string linha;
+    while (getline(in, linha)) {
+        if (linha.empty()) continue; // Ignora linhas em branco
+
+        stringstream ss(linha);
+        string etiqueta;
+        getline(ss, etiqueta, '|'); // Lemos a primeira palavra até ao '|'
+
+        if (etiqueta == "SECTOR") {
+            Sector* novo = new Sector;
+            string idStr, capStr;
+
+            getline(ss, idStr, '|');
+            getline(ss, capStr, '|');
+            getline(ss, novo->area, '|');
+            getline(ss, novo->responsavel, '|');
+
+            novo->id = idStr[0];
+            novo->capacidade = stoi(capStr); // Converte string para int
+            novo->ocupacao = 0;             // Será somado à medida que carregamos produtos
+            novo->inicioProdutos = nullptr;
+            novo->raizVendas = nullptr;
+
+            // Adicionar à lista de sectores
+            novo->prox = sm.inicioSectores;
+            sm.inicioSectores = novo;
+
+        } else if (etiqueta == "P_SEC") {
+            string idSecStr, precoStr, precoOrigStr;
+            getline(ss, idSecStr, '|');
+
+            Sector* s = encontrarSector(sm, idSecStr[0]);
+            if (s) {
+                Produto p;
+                getline(ss, p.nome, '|');
+                getline(ss, p.area, '|');
+                getline(ss, p.fornecedor, '|');
+                getline(ss, precoStr, '|');
+                getline(ss, precoOrigStr, '|');
+
+                p.preco = stoi(precoStr);
+                p.precoOriginal = stoi(precoOrigStr);
+
+                // Usamos a tua função que já tinhas feito!
+                adicionarProdutoFim(s->inicioProdutos, p);
+                s->ocupacao++;
+            }
+
+        } else if (etiqueta == "P_ARM") {
+            Produto p;
+            string precoStr, precoOrigStr;
+            getline(ss, p.nome, '|');
+            getline(ss, p.area, '|');
+            getline(ss, p.fornecedor, '|');
+            getline(ss, precoStr, '|');
+            getline(ss, precoOrigStr, '|');
+
+            p.preco = stoi(precoStr);
+            p.precoOriginal = stoi(precoOrigStr);
+
+            Entra(sm.armazem, p);
+
+        } else if (etiqueta == "VENDA") {
+            string idSecStr, precoStr, nomeProd;
+            getline(ss, idSecStr, '|');
+            getline(ss, nomeProd, '|');
+            getline(ss, precoStr, '|');
+
+            Sector* s = encontrarSector(sm, idSecStr[0]);
+            if (s) {
+                // Usamos a tua função recursiva de inserção na árvore!
+                inserirVendaRec(s->raizVendas, stoi(precoStr), nomeProd);
+            }
+
+        } else if (etiqueta == "CAMP") {
+            string area, percStr, durStr;
+            getline(ss, area, '|');
+            getline(ss, percStr, '|');
+            getline(ss, durStr, '|');
+
+            Campanha* nova = new Campanha{area, stoi(percStr), stoi(durStr), sm.campanhas};
+            sm.campanhas = nova;
+        }
+    }
+
+    in.close();
+    return true;
 }
 
+void limparSupermercado(SuperMercado& sm) {
+    // 1. Limpar Sectores e os Produtos dentro deles
+    Sector* sAtual = sm.inicioSectores;
+    while (sAtual != nullptr) {
+        // Limpar a lista de produtos deste sector
+        NoProduto* pAtual = sAtual->inicioProdutos;
+        while (pAtual != nullptr) {
+            NoProduto* auxP = pAtual;
+            pAtual = pAtual->prox;
+            delete auxP;
+        }
+
+        // Limpar a Árvore de Vendas deste sector (precisas de uma função recursiva)
+        limparArvore(sAtual->raizVendas);
+
+        Sector* auxS = sAtual;
+        sAtual = sAtual->prox;
+        delete auxS;
+    }
+    sm.inicioSectores = nullptr;
+
+    // 2. Limpar o Armazém (Fila)
+    while (!Vazia(sm.armazem)) {
+        Sai(sm.armazem); // O teu Sai já deve fazer o delete do nó
+    }
+
+    // 3. Limpar Campanhas
+    Campanha* cAtual = sm.campanhas;
+    while (cAtual != nullptr) {
+        Campanha* auxC = cAtual;
+        cAtual = cAtual->prox;
+        delete auxC;
+    }
+    sm.campanhas = nullptr;
+}
+
+// Função auxiliar para a árvore
+void limparArvore(NoVenda* raiz) {
+    if (raiz == nullptr) return;
+    limparArvore(raiz->esq);
+    limparArvore(raiz->dir);
+    delete raiz;
+}
+
+void gravarVendasRec(NoVenda* raiz, char sectorID, ofstream& out) {
+    if (raiz == nullptr) return;
+    out << "VENDA|" << sectorID << "|" << raiz->nome << "|" << raiz->preco << "\n";
+    gravarVendasRec(raiz->esq, sectorID, out);
+    gravarVendasRec(raiz->dir, sectorID, out);
+}
+
+Sector* encontrarSector(SuperMercado& sm, char id) {
+    Sector* atual = sm.inicioSectores;
+    while (atual != nullptr) {
+        if (atual->id == id) return atual;
+        atual = atual->prox;
+    }
+    return nullptr;
+}
 
 
 

@@ -15,6 +15,8 @@ void interfaceAtualizarPreco(SuperMercado& sm);
 void interfaceIniciarCampanha(SuperMercado& sm);
 void interfaceCriarArea(NoString*& areasAtivas, int& nAreasAtivas);
 void interfaceRegistoVendas(SuperMercado& sm);
+void interfaceGravar(SuperMercado& sm);
+void interfaceCarregar(SuperMercado& sm);
 
 // função principal do Menu
 void menuGestao(SuperMercado& sm, NoString*& areasAtivas, int& nAreasAtivas);
