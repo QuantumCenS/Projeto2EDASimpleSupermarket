@@ -4,6 +4,7 @@
 
 #include "menu.h"
 #include <iostream>
+#include <limits>
 
 using namespace std;
 
@@ -39,7 +40,7 @@ void interfaceAtualizarPreco(SuperMercado& sm) {
         cin.clear();
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
         cout << "Preco invalido! Por favor, introduza apenas numeros inteiros.\n";
-        return; // Sai da função antes de estragar a Fila!
+        return;
     }
 
     bool sucesso= atualizarPrecoArmazem(sm, nomeProd, novoPreco);
@@ -87,24 +88,86 @@ void interfaceIniciarCampanha(SuperMercado& sm) {
     }
 }
 
-void interfaceCriarArea(NoString*& areasAtivas, int& nAreasAtivas) {
+void interfaceCriarArea(SuperMercado& sm, NoString*& areasAtivas, int& nAreasAtivas) {
     string novaArea;
-    cout << "-> Introduza o nome da nova area: ";
-    getline(cin >> ws, novaArea);
+    bool entradaValida = false;
 
-    if (novaArea.empty()) {
-        cout << "[ERRO] O nome da area nao pode estar vazio!\n";
-        return;
+    // Limpa o "Enter"
+    if (cin.peek() == '\n') {
+        cin.ignore();
     }
 
-    bool sucesso=criarNovaArea(areasAtivas, nAreasAtivas, novaArea);
+    // MOSTRAR AS ÁREAS EXISTENTES
+    cout << "\n==================================================\n";
+    cout << "           CRIAR NOVA AREA DE PRODUTOS            \n";
+    cout << "==================================================\n";
+    cout << "Areas atualmente registadas no sistema:\n";
 
-    if (sucesso) {
-        cout << "Area '" << novaArea << "' adicionada aos registos.\n";
+    if (areasAtivas == nullptr) {
+        cout << "  [ Nenhuma area registada ainda ]\n";
     } else {
-        cout << "A area '" << novaArea << "' ja existe no sistema!\n";
-    }}
+        // Percorre a lista e imprime cada área
+        int contador = 1;
+        for (NoString* atual = areasAtivas; atual != nullptr; atual = atual->prox) {
+            cout << "  " << contador << ". " << atual->texto << "\n";
+            contador++;
+        }
+    }
+    cout << "==================================================\n";
 
+
+    while (!entradaValida) {
+        cout << "\n-> Introduza o nome da nova area (ou '0' para cancelar): ";
+        getline(cin, novaArea);
+
+        // Botão de Cancelar
+        if (novaArea == "0") {
+            cout << "Operacao cancelada. A voltar ao menu...\n";
+            return;
+        }
+
+        // Proteção contra espaços vazios
+        if (novaArea.empty() || novaArea.find_first_not_of(" ") == string::npos) {
+            cout << "[ERRO] Nome invalido! Nao pode deixar em branco nem usar apenas espacos.\n";
+        }
+        else {
+            bool sucesso = criarNovaArea(areasAtivas, nAreasAtivas, novaArea);
+
+            if (sucesso) {
+                cout << "[SUCESSO] Area '" << novaArea << "' criada com exito!\n";
+                entradaValida = true;
+
+
+                char opcao;
+                cout << "\nDeseja abrir ja um sector fisico na loja para esta area? (s/n): ";
+                cin >> opcao;
+
+                if (opcao == 's' || opcao == 'S') {
+                    string resp;
+
+                    cout << "Nome do responsavel pelo novo sector: ";
+                    getline(cin >> ws, resp);
+
+                    // Gera um número aleatório entre 5 e 10
+                    int cap = rand() % 6 + 5;
+
+                    // Chama a função que cria o sector na lista ligada
+                    adicionarNovoSector(sm, novaArea, resp, cap);
+
+                    cout << "\n[OK] Sector de '" << novaArea << "' aberto com sucesso e atribuido a " << resp << "!\n";
+                    cout << "     -> O setor tera capacidade para " << cap << " produtos.\n";
+                } else {
+                    cout << "\n[OK] Area registada apenas no sistema. Nao foi aberto nenhum sector fisico.\n";
+                }
+
+
+
+            } else {
+                cout << "[ERRO] A area '" << novaArea << "' ja existe na lista acima. Tente outro nome.\n";
+            }
+        }
+    }
+}
 void interfaceRegistoVendas(SuperMercado& sm) {
     string nomeResp;
     cout << "-> Introduza o nome do responsavel a pesquisar: ";
@@ -171,7 +234,7 @@ void menuGestao(SuperMercado& sm, NoString*& areasAtivas, int& nAreasAtivas) {
             case 4: interfaceGravar(sm); break;
             case 5: interfaceCarregar(sm); break;
             case 6: imprimirProdutos(sm); break;
-            case 7: interfaceCriarArea(areasAtivas, nAreasAtivas); break;
+            case 7: interfaceCriarArea(sm,areasAtivas, nAreasAtivas); break;
             case 8: interfaceRegistoVendas(sm); break;
             case 0: break;
             default: cout << "[ERRO] Opcao invalida.\n";

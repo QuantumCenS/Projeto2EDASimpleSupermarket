@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <cctype>
 
 using namespace std;
 
@@ -109,35 +110,22 @@ void inserirVenda(NoVenda*& raiz, int preco, const string& nome) {
 
 
 
-void gerarProdutosParaArmazem(SuperMercado& sm, int quantidade, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
-    // NOVIDADE: Conta quantos sectores existem no supermercado
-    // (Fazemos isto fora do ciclo para não desperdiçar processamento)
-    int numSectores = 0;
-    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
-        numSectores++;
-    }
+void gerarProdutosParaArmazem(SuperMercado& sm, int quantidade, NoString* areasAtivas, int nAreasAtivas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
 
-    // Proteção de segurança: se o supermercado não tiver sectores, não gera nada!
-    if (numSectores == 0) return;
+    // Proteção de segurança
+    if (nAreasAtivas == 0) return;
 
     for (int i = 0; i < quantidade; i++) {
         Produto p;
         p.nome = obterElementoLista(nomes, gerarAleatorio(0, nNomes - 1));
         p.fornecedor = obterElementoLista(fornecedores, gerarAleatorio(0, nFornec - 1));
 
-        // --- A MAGIA ACONTECE AQUI ---
-        // Em vez de ler das 'areas' globais, escolhemos um sector à sorte!
-        int sectorEscolhido = rand() % numSectores;
-        Sector* sAux = sm.inicioSectores;
-        for (int j = 0; j < sectorEscolhido; j++) {
-            sAux = sAux->prox;
-        }
-        p.area = sAux->area; // O produto recebe a área legítima do sector!
-        // -----------------------------
+        p.area = obterElementoLista(areasAtivas, gerarAleatorio(0, nAreasAtivas - 1));
 
         p.preco = (gerarAleatorio(1, 40)) * 2;
         p.precoOriginal = p.preco;
 
+        // Entra na fila do armazém
         Entra(sm.armazem, p);
     }
 }
@@ -152,7 +140,7 @@ void inicializarSupermercado(SuperMercado& sm, NoString* areas, int nAreas, NoSt
     char id = 'A';
 
     for (int i = 0; i < nSetores; i++) {
-        Sector* novoSetor = new Sector; // Substitui o NoSetor do Sérgio
+        Sector* novoSetor = new Sector;
         novoSetor->id = id++;
         novoSetor->capacidade = gerarAleatorio(5, 10);
         novoSetor->ocupacao = 0;
@@ -215,25 +203,34 @@ void transferirArmazemParaSetores(SuperMercado& sm, int maxTransferir) {
         Sai(sm.armazem);
 
         Sector* setorAlvo = nullptr;
+        int maxEspacoLivre = 0; //  encontrar o sector mais vazio
 
+        // Percorre TODOS os sectores
         for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
-            if (s->area == prod.area && s->ocupacao < s->capacidade) {
-                setorAlvo = s;
-                break;
+            if (s->area == prod.area) {
+                int espacoLivre = s->capacidade - s->ocupacao;
+
+                // Se este sector tem mais espaço livre que o anterior, passa a ser o alvo
+                if (espacoLivre > maxEspacoLivre) {
+                    maxEspacoLivre = espacoLivre;
+                    setorAlvo = s;
+                }
             }
         }
 
+        // Se encontrou um alvo válido (com espaço livre > 0)
         if (setorAlvo != nullptr) {
             adicionarProdutoFim(setorAlvo->inicioProdutos, prod);
             setorAlvo->ocupacao++;
             colocados++;
         } else {
+            // Se não encontrou nenhum sector com espaço, volta para o armazém
             Entra(sm.armazem, prod);
         }
     }
 }
 
-// Alterei a assinatura para receber o 'areas' e 'nAreas' globais
+
 void simularCiclo(SuperMercado& sm, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
 
     // Tentar vender os produtos que estão nas prateleiras
@@ -343,9 +340,8 @@ bool adicionarCampanha(SuperMercado& sm, const string& area, int percentagem, in
 
 
 void imprimirProdutos(const SuperMercado& sm) {
-    // 1. Percorrer Sectores e Produtos
+    // Percorrer Sectores e Produtos
     for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
-        // Formatação exata do cabeçalho do sector (sem espaço depois de Sector:)
         cout << "Sector:" << s->id
              << " | Responsavel: " << s->responsavel
              << " | Capacidade: " << s->capacidade
@@ -353,14 +349,12 @@ void imprimirProdutos(const SuperMercado& sm) {
              << " | Area: " << s->area << "\n";
 
         for (NoProduto* p = s->inicioProdutos; p != nullptr; p = p->prox) {
-            // Formatação exata do produto (com espaço antes dos dois pontos no Preço)
             cout << "Produto: " << p->info.nome << " | Preco : " << p->info.preco << " Euros\n";
         }
-        // Exatamente 50 traços de separador
         cout << "--------------------------------------------------\n";
     }
 
-    // 2. Percorrer Armazém
+    // Percorrer Armazém
     cout << "Armazem:\n";
 
     // Cabeçalho da Tabela
@@ -379,7 +373,6 @@ void imprimirProdutos(const SuperMercado& sm) {
             Produto p = Primeiro(sm_mut.armazem);
             Sai(sm_mut.armazem);
 
-            // Imprime apenas Nome, Área e Preço[cite: 1]
             cout << " " << left << setw(29) << p.nome
                  << " | " << setw(25) << p.area
                  << " | " << right << setw(3) << p.preco << " EUR\n";
@@ -389,37 +382,74 @@ void imprimirProdutos(const SuperMercado& sm) {
     }
     cout << "===============================================================================\n\n";
 }
+
+
 bool criarNovaArea(NoString*& areas, int& nAreas, const string& novaArea) {
+    if (novaArea.empty() || novaArea.find_first_not_of(" ") == string::npos) {
+        return false;
+    }
+
+    string novaAreaMin = novaArea;
+    for (char &c : novaAreaMin) {
+        c = tolower(c);
+    }
+
+    //Verificar se a área já existe
     for (NoString* atual = areas; atual != nullptr; atual = atual->prox) {
-        if (atual->texto == novaArea) {
-            return false; // A área já existe! Aborta.
+
+        string atualMin = atual->texto;
+        for (char &c : atualMin) {
+            c = tolower(c);
+        }
+
+        if (atualMin == novaAreaMin) {
+            return false; // A área já existe
         }
     }
 
+    // Se chegou aqui, a área é mesmo nova.
     adicionarStringFim(areas, novaArea, nAreas);
     return true;
 }
 
+// Função que percorre a árvore e imprime automaticamente do mais barato para o mais caro
 void percorrerInOrder(NoVenda* no) {
     if (no == nullptr) return;
-    percorrerInOrder(no->esq);
-    cout << "Produto: " << no->nome << " | Preco: " << no->preco << " Euros\n";
+
+    percorrerInOrder(no->esq); // Vai aos mais baratos primeiro
+
+    cout << "  " << left << setw(30) << no->nome
+         << " | " << right << setw(5) << no->preco << " EUR\n";
+
     percorrerInOrder(no->dir);
 }
+
 
 bool mostrarRegistoVendas(const SuperMercado& sm, const string& responsavel) {
     bool encontrou = false;
 
     for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
         if (s->responsavel == responsavel) {
-            cout << "\nSector " << s->id << " (" << s->area << "):\n";
+
+            encontrou = true;
+
+            cout << "\n==================================================\n";
+            cout << " REGISTO DE VENDAS - SECTOR " << s->id << "\n";
+            cout << " Area: " << s->area << " | Responsavel: " << s->responsavel << "\n";
+            cout << "==================================================\n";
 
             if (s->raizVendas == nullptr) {
-                cout << "   -> Ainda nao foram registadas vendas neste sector.\n";
+                cout << "  [ Ainda nao foram registadas vendas ]\n";
+                cout << "--------------------------------------------------\n";
             } else {
+                cout << "  " << left << setw(30) << "PRODUTO VENDIDO" << " | " << "PRECO\n";
+                cout << "--------------------------------------------------\n";
+
+
                 percorrerInOrder(s->raizVendas);
+
+                cout << "--------------------------------------------------\n";
             }
-            encontrou = true;
         }
     }
 
@@ -620,6 +650,36 @@ Sector* encontrarSector(SuperMercado& sm, char id) {
     return nullptr;
 }
 
+
+
+void adicionarNovoSector(SuperMercado& sm, const string& area, const string& resp, int cap) {
+    // Criar o novo nó
+    Sector* novo = new Sector;
+
+    // Calcular o próximo ID
+    char ultimoID = 64;
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        if (s->id > ultimoID) {
+            ultimoID = s->id;
+        }
+    }
+
+    if (ultimoID == 64) {
+        novo->id = 'A';
+    } else {
+        novo->id = ultimoID + 1;
+    }
+
+    // Preencher os dados
+    novo->area = area;
+    novo->responsavel = resp;
+    novo->capacidade = cap;
+    novo->ocupacao = 0;
+    novo->inicioProdutos = nullptr;
+    novo->raizVendas = nullptr;
+    novo->prox = sm.inicioSectores;
+    sm.inicioSectores = novo;
+}
 
 
 

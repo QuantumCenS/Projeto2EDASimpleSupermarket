@@ -57,18 +57,29 @@ int main(int argc, char* argv[]) {
         // Imprime o estado atual do supermercado
         imprimirProdutos(super);
 
-        // Menu Gestao
-        cout << "(s)eguinte  **********  (g)estao  **********  (q)sair\n";
-        cout << "Seleccione a sua opcao: ";
+        bool opcaoValida = false;
 
-        cin >> opcao;
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        while (!opcaoValida) {
+            cout << "\n(s)eguinte  ********** (g)estao  ********** (q)sair\n";
+            cout << "Seleccione a sua opcao: ";
 
-        if (opcao == 's' || opcao == 'S') {
-            simularCiclo(super,areas,nAreas, nomes, nNomes, fornecedores, nFornec);
-        }
-        else if (opcao == 'g' || opcao == 'G') {
-            menuGestao(super, areas, nAreas);
+            cin >> opcao;
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+            if (opcao == 's' || opcao == 'S') {
+                simularCiclo(super, areas, nAreas, nomes, nNomes, fornecedores, nFornec);
+                opcaoValida = true;
+            }
+            else if (opcao == 'g' || opcao == 'G') {
+                menuGestao(super, areas, nAreas);
+                opcaoValida = true;
+            }
+            else if (opcao == 'q' || opcao == 'Q') {
+                opcaoValida = true;
+            }
+            else {
+                cout << "[ERRO] Opcao invalida! Tente novamente.\n";
+            }
         }
 
     } while (opcao != 'q' && opcao != 'Q');

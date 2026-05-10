@@ -107,6 +107,9 @@ void imprimirProdutos(const SuperMercado& sm);
 bool criarNovaArea(NoString*& areas, int& nAreas, const string& novaArea);
 bool mostrarRegistoVendas(const SuperMercado& sm, const string& responsavel);
 
+void adicionarNovoSector(SuperMercado& sm, const string& area, const string& resp, int cap);
+
+
 void limparSupermercado(SuperMercado& sm);
 void limparArvore(NoVenda* raiz);
 void gravarVendasRec(NoVenda* raiz, char sectorID, ofstream& out);
