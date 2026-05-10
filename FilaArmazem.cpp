@@ -78,19 +78,3 @@ int Comprimento(FilaArmazem &f) {
     }
     return comp;
 }
-
-// Escreve o conteúdo da fila na consola para efeitos de visualização
-void Escreve(FilaArmazem &f) {
-    if (!Vazia(f)) {
-        // ATUALIZADO: Usar NoArmazem
-        NoArmazem *aux = f.primeiro;
-        while (aux != nullptr) {
-            // Adaptação da visualização para mostrar dados do Produto
-            cout << "[" << aux->valor.nome << " (" << aux->valor.area << ")] -> ";
-            aux = aux->seguinte;
-        }
-        cout << "NULL\n";
-    } else {
-        cout << "O armazem esta vazio.\n";
-    }
-}

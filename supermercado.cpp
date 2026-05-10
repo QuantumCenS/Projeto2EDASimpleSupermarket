@@ -103,40 +103,34 @@ void inserirVendaRec(NoVenda*& raiz, int preco, const string& nome) {
     else inserirVendaRec(raiz->dir, preco, nome);
 }
 
-void inserirVenda(NoVenda*& raiz, int preco, const string& nome) {
-    inserirVendaRec(raiz, preco, nome);
-}
+
 
 
 
 void gerarProdutosParaArmazem(SuperMercado& sm, int quantidade, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
-    // NOVIDADE: Conta quantos sectores existem no supermercado
-    // (Fazemos isto fora do ciclo para não desperdiçar processamento)
-    int numSectores = 0;
-    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
-        numSectores++;
-    }
-
-    // Proteção de segurança: se o supermercado não tiver sectores, não gera nada!
-    if (numSectores == 0) return;
+    // Proteção: se a lista de áreas estiver vazia, não gera produtos
+    if (nAreas <= 0 || areas == nullptr) return;
 
     for (int i = 0; i < quantidade; i++) {
         Produto p;
+        // Seleciona Nome e Fornecedor aleatórios
         p.nome = obterElementoLista(nomes, gerarAleatorio(0, nNomes - 1));
         p.fornecedor = obterElementoLista(fornecedores, gerarAleatorio(0, nFornec - 1));
 
-        // --- A MAGIA ACONTECE AQUI ---
-        // Em vez de ler das 'areas' globais, escolhemos um sector à sorte!
-        int sectorEscolhido = rand() % numSectores;
-        Sector* sAux = sm.inicioSectores;
-        for (int j = 0; j < sectorEscolhido; j++) {
-            sAux = sAux->prox;
-        }
-        p.area = sAux->area; // O produto recebe a área legítima do sector!
-        // -----------------------------
+        // Como a 'interfaceCriarArea' adiciona as novas áreas a esta lista,
+        // elas passarão a ser selecionadas aqui.
+        p.area = obterElementoLista(areas, gerarAleatorio(0, nAreas - 1));
 
         p.preco = (gerarAleatorio(1, 40)) * 2;
         p.precoOriginal = p.preco;
+
+        // Verifica se existe uma campanha ativa para esta área (mesmo sendo nova)
+        for (Campanha* c = sm.campanhas; c != nullptr; c = c->prox) {
+            if (c->area == p.area) {
+                p.preco = p.precoOriginal * (100 - c->percentagem) / 100;
+                break;
+            }
+        }
 
         Entra(sm.armazem, p);
     }
@@ -161,8 +155,15 @@ void inicializarSupermercado(SuperMercado& sm, NoString* areas, int nAreas, NoSt
         inicializarListaProdutos(novoSetor->inicioProdutos);
         inicializarArvore(novoSetor->raizVendas);
 
-        cout << "Nome do responsavel pelo sector " << novoSetor->id << " (" << novoSetor->area << "): ";
-        getline(cin, novoSetor->responsavel);
+        // Ciclo insiste ate que o utilizador escreva um nome valido
+        do {
+            cout << "Nome do responsavel pelo sector " << novoSetor->id << " (" << novoSetor->area << "): ";
+            getline(cin, novoSetor->responsavel); // Removido o '>> ws'
+
+            if (novoSetor->responsavel.empty()) {
+                cout << "[ERRO] O nome do responsavel e obrigatorio!\n";
+            }
+        } while (novoSetor->responsavel.empty());
 
         novoSetor->prox = sm.inicioSectores;
         sm.inicioSectores = novoSetor;
@@ -186,7 +187,7 @@ void venderProdutos(SuperMercado& sm) {
             NoProduto* proximo = atual->prox;
 
             if (vendido) {
-                inserirVenda(s->raizVendas, atual->info.preco, atual->info.nome);
+                inserirVendaRec(s->raizVendas, atual->info.preco, atual->info.nome);
 
                 if (anterior == nullptr) {
                     s->inicioProdutos = proximo;
@@ -233,8 +234,62 @@ void transferirArmazemParaSetores(SuperMercado& sm, int maxTransferir) {
     }
 }
 
+void atualizarCampanhas(SuperMercado& sm) {
+    Campanha* atual = sm.campanhas;
+    Campanha* anterior = nullptr;
+
+    while (atual != nullptr) {
+        atual->duracao--; // Passou um ciclo! Decrementa a duracao.
+
+        // Se a duracao chegou ao fim, a campanha expira
+        if (atual->duracao <= 0) {
+            string areaExpirada = atual->area;
+            cout << "\n[CAMPANHA] A campanha na area '" << areaExpirada << "' terminou! Precos originais restaurados.\n";
+
+            // Restaurar precos nos Sectores
+            for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+                if (s->area == areaExpirada) {
+                    for (NoProduto* p = s->inicioProdutos; p != nullptr; p = p->prox) {
+                        p->info.preco = p->info.precoOriginal;
+                    }
+                }
+            }
+
+            // Restaurar precos no Armazem
+            int total = Comprimento(sm.armazem);
+            for (int i = 0; i < total; i++) {
+                Produto p = Primeiro(sm.armazem);
+                Sai(sm.armazem);
+
+                if (p.area == areaExpirada) {
+                    p.preco = p.precoOriginal;
+                }
+
+                Entra(sm.armazem, p);
+            }
+
+            // Remover a campanha da lista ligada com seguranca
+            Campanha* apagar = atual;
+            if (anterior == nullptr) {
+                sm.campanhas = atual->prox;
+                atual = sm.campanhas;
+            } else {
+                anterior->prox = atual->prox;
+                atual = atual->prox;
+            }
+            delete apagar;
+
+        } else {
+            anterior = atual;
+            atual = atual->prox;
+        }
+    }
+}
+
 // Alterei a assinatura para receber o 'areas' e 'nAreas' globais
 void simularCiclo(SuperMercado& sm, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
+
+    atualizarCampanhas(sm);
 
     // Tentar vender os produtos que estão nas prateleiras
     venderProdutos(sm);

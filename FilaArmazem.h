@@ -37,7 +37,6 @@ void Sai(FilaArmazem& f);
 bool Vazia(FilaArmazem& f);
 Produto Primeiro(FilaArmazem& f);
 int Comprimento(FilaArmazem& f);
-void Escreve(FilaArmazem& f);
 
 #endif // FILAARMAZEM_H
 

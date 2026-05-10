@@ -83,7 +83,7 @@ void adicionarProdutoFim(NoProduto*& inicio, const Produto& p);
 
 // Funções para gerir a Árvore de Vendas (Atualizado sem a struct ArvoreVendas)
 void inicializarArvore(NoVenda*& raiz);
-void inserirVenda(NoVenda*& raiz, int preco, const string& nome);
+void inserirVendaRec(NoVenda*& raiz, int preco, const string& nome);
 
 void inicializarSupermercado(SuperMercado& sm, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec);
 
@@ -106,6 +106,7 @@ bool carregarSupermercado(SuperMercado& sm, const string& filename);
 void imprimirProdutos(const SuperMercado& sm);
 bool criarNovaArea(NoString*& areas, int& nAreas, const string& novaArea);
 bool mostrarRegistoVendas(const SuperMercado& sm, const string& responsavel);
+void atualizarCampanhas(SuperMercado& sm);
 
 void limparSupermercado(SuperMercado& sm);
 void limparArvore(NoVenda* raiz);
