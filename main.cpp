@@ -11,7 +11,7 @@ using namespace std;
 
 /**
  * ponto de entrada principal do simulador do supermercado.
- * cordena todo o fluxo da aplicacao: inicializa o gerador de numeros aleatorios,
+ * cordena ttodo o fluxo da aplicacao: inicializa o gerador de numeros aleatorios,
  * carrega os catalogos base (areas, produtos e fornecedores), inicializa as estruturas
  * criticas do supermercado e gere a persistencia de dados (via argumentos da linha de comandos).
  * controla tambem o ciclo principal do simulador (loop) que alterna entre avanco de ciclos,

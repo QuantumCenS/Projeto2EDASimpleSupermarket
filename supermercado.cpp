@@ -700,7 +700,7 @@ bool mostrarRegistoVendas(const SuperMercado& sm, const string& responsavel) {
 
 
 /**
- * grava o estado atual de todo o supermercado (sectores, produtos nas prateleiras, vendas, armazem e campanhas) num ficheiro de texto
+ * grava o estado atual de ttodo o supermercado (sectores, produtos nas prateleiras, vendas, armazem e campanhas) num ficheiro de texto
  * percorre as estruturas de dados gerando linhas com prefixos especificos (SECTOR, P_SEC, P_ARM, CAMP) para facilitar a leitura posterior
  * @param sm referencia para a estrutura principal do supermercado cujos dados serao salvos
  * @param filename referencia constante para o nome do ficheiro onde os dados serao gravados (ex: "supermercado.txt")
