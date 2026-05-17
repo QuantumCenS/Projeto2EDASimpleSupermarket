@@ -8,6 +8,19 @@
 
 using namespace std;
 
+
+/**
+ * ponto de entrada principal do simulador do supermercado.
+ * cordena todo o fluxo da aplicacao: inicializa o gerador de numeros aleatorios,
+ * carrega os catalogos base (areas, produtos e fornecedores), inicializa as estruturas
+ * criticas do supermercado e gere a persistencia de dados (via argumentos da linha de comandos).
+ * controla tambem o ciclo principal do simulador (loop) que alterna entre avanco de ciclos,
+ * menu de gestao administrativa e a exibicao do estado da loja, garantindo a libertacao
+ * total de memoria de todas as listas, filas, pilhas e arvores antes do encerramento.
+ * @param argc contador de argumentos passados na linha de comandos
+ * @param argv vetor de strings com os argumentos (argv[1] pode conter o caminho de um ficheiro de salvaguarda)
+ * @return 0 se o programa terminar com sucesso, 1 se falhar a leitura dos catalogos base
+ */
 int main(int argc, char* argv[]) {
     srand(time(NULL));
 

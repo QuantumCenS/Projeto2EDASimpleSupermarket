@@ -14,8 +14,6 @@ struct NoString {
 };
 
 
-
-
 // CORREÇÃO: ÁRVORE DE VENDAS (Sem duplicação)
 // Apenas precisamos do nó. A struct "ArvoreVendas" desaparece.
 struct NoVenda {
@@ -32,7 +30,7 @@ struct NoProduto {
 };
 
 
-// CORREÇÃO: O SETOR (Sem duplicação)
+// CORREÇÃO: SETOR (Sem duplicação)
 // O Setor guarda os seus dados e aponta para o próximo Setor.
 // Desaparecem as structs "NoSetor" e "ListaSetores".
 struct Sector {
@@ -71,9 +69,6 @@ struct SuperMercado {
 
 
 
-
-
-
 // FUNÇÕES UTILITÁRIAS E STRINGS
 int gerarAleatorio(int min, int max);
 NoString* carregarStrings(const std::string& filename, int& total);
@@ -102,7 +97,7 @@ void simularCiclo(SuperMercado& sm, NoString* areas, int nAreas, NoString* nomes
 void venderProdutos(SuperMercado& sm);
 void transferirArmazemParaSetores(SuperMercado& sm, int maxTransferir);
 
-// Funções de Gestão (em falta a de gravar e carregar)
+// Funções de Gestão
 int removerProdutoGlobal(SuperMercado& sm, const string& nome);
 bool atualizarPrecoArmazem(SuperMercado& sm, const string& nome, int novoPreco);
 bool adicionarCampanha(SuperMercado& sm, const string& area, int percentagem, int duracao);
@@ -121,10 +116,15 @@ void gravarVendasRec(NoVenda* raiz, char sectorID, ofstream& out);
 Sector* encontrarSector(SuperMercado& sm, char id);
 void adicionarNovoSector(SuperMercado& sm, const string& area, const string& resp, int cap);
 
-int somarVendasRec(NoVenda* raiz);
-void relatorioFaturacaoGlobal(const SuperMercado& sm);
-bool fecharSector(SuperMercado& sm, char idSector);
-void pesquisarProduto(const SuperMercado& sm, const string& nomeProd);
 void pushHistorico(SuperMercado& sm, const Produto& p);
 bool desfazerUltimaRemocao(SuperMercado& sm);
+
+
+//Funcoes usadas apenas para efetuar testes
+
+//void relatorioFaturacaoGlobal(const SuperMercado& sm);
+//bool fecharSector(SuperMercado& sm, char idSector);
+//int somarVendasRec(NoVenda* raiz);
+//void pesquisarProduto(const SuperMercado& sm, const string& nomeProd);
+
 #endif

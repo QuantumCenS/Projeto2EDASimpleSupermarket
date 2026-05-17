@@ -12,6 +12,13 @@ using namespace std;
 // FUNÇÕES DE INTERFACE DO MENU
 // ==========================================
 
+
+/**
+ * gere a interface de utilizador para a remocao de um produto do supermercado.
+ * solicita o nome do produto através do teclado, invoca a funcao de remocao global
+ * e apresenta uma mensagem apropriada com base no resultado (sucesso, bloqueio por campanha ou nao encontrado).
+ * @param sm referencia para a estrutura principal do supermercado
+ */
 void interfaceRemoverProduto(SuperMercado& sm) {
     string nomeProd;
     cout << "-> Introduza o nome do produto a remover: ";
@@ -30,6 +37,13 @@ void interfaceRemoverProduto(SuperMercado& sm) {
     }
 }
 
+
+/**
+ * gere a interface de utilizador para a atualizacao de preco de um produto no armazem.
+ * solicita o nome do produto e o novo preco, valida se a entrada numerica e valida
+ * para evitar falhas no fluxo de leitura (cin) e reporta o sucesso ou insucesso da operacao.
+ * @param sm referencia para a estrutura principal do supermercado
+ */
 void interfaceAtualizarPreco(SuperMercado& sm) {
     string nomeProd;
     int novoPreco;
@@ -56,6 +70,14 @@ void interfaceAtualizarPreco(SuperMercado& sm) {
     }
 }
 
+
+/**
+ * gere a interface de utilizador para a criacao e ativacao de uma nova campanha de descontos.
+ * solicita a area, a percentagem de desconto e a duracao, aplicando uma validacao defensiva
+ * rigorosa em todas as entradas numericas para garantir valores logicos (descontos entre 1-99%
+ * e duracoes positivas) antes de submeter a criacao da campanha.
+ * @param sm referencia para a estrutura principal do supermercado
+ */
 void interfaceIniciarCampanha(SuperMercado& sm) {
     string area;
     int perc, duracao;
@@ -92,6 +114,13 @@ void interfaceIniciarCampanha(SuperMercado& sm) {
     }
 }
 
+
+/**
+ * gere a interface de utilizador para a operacao de desfazer a ultima remocao de um produto.
+ * tenta invocar o desempilhamento do historico e apresenta uma mensagem de aviso caso
+ * nao existam acoes gravadas na pilha para reverter.
+ * @param sm referencia para a estrutura principal do supermercado
+ */
 void interfaceDesfazerRemocao(SuperMercado& sm) {
     cout << "\n--- A TENTAR RECUPERAR O ULTIMO PRODUTO REMOVIDO ---\n";
     if (!desfazerUltimaRemocao(sm)) {
@@ -99,6 +128,17 @@ void interfaceDesfazerRemocao(SuperMercado& sm) {
     }
 }
 
+
+/**
+ * gere a interface de utilizador para a criacao e registo de uma nova area de produtos.
+ * exibe a lista das areas ja existentes, valida defensivamente a entrada de texto (evitando
+ * nomes vazios ou compostos apenas por espacos) e, em caso de sucesso no registo da area,
+ * permite ao utilizador abrir imediatamente um sector fisico correspondente na loja,
+ * atribuindo-lhe um responsavel e uma capacidade maxima gerada aleatoriamente (entre 5 e 10).
+ * @param sm referencia para a estrutura principal do supermercado
+ * @param areasAtivas referencia para o ponteiro da lista ligada de areas do sistema
+ * @param nAreasAtivas referencia para o contador do total de areas registadas
+ */
 void interfaceCriarArea(SuperMercado& sm, NoString*& areasAtivas, int& nAreasAtivas) {
     string novaArea;
     bool entradaValida = false;
@@ -176,6 +216,13 @@ void interfaceCriarArea(SuperMercado& sm, NoString*& areasAtivas, int& nAreasAti
     }
 }
 
+
+/**
+ * gere a interface de utilizador para a consulta do histórico de vendas por funcionário.
+ * solicita o nome do responsável através do teclado, invoca a função de pesquisa e,
+ * caso o gestor não seja encontrado no sistema, emite uma mensagem informativa.
+ * @param sm referencia para a estrutura principal do supermercado
+ */
 void interfaceRegistoVendas(SuperMercado& sm) {
     string nomeResp;
     cout << "-> Introduza o nome do responsavel a pesquisar: ";
@@ -188,6 +235,13 @@ void interfaceRegistoVendas(SuperMercado& sm) {
     }
 }
 
+
+/**
+ * gere a interface de utilizador para a gravacao do estado atual do supermercado.
+ * solicita o nome do ficheiro de destino atraves do teclado, invoca o motor de gravacao
+ * e reporta o sucesso da operacao ou uma mensagem de erro caso o ficheiro nao possa ser criado.
+ * @param sm referencia para a estrutura principal do supermercado
+ */
 void interfaceGravar(SuperMercado& sm) {
     string ficheiro;
     cout << "-> Introduza o nome do ficheiro para guardar (ex: save1.txt): ";
@@ -200,6 +254,15 @@ void interfaceGravar(SuperMercado& sm) {
     }
 }
 
+
+/**
+ * gere a interface de utilizador para o carregamento de dados do supermercado.
+ * solicita o nome do ficheiro de origem através do teclado, invoca o motor de carregamento
+ * e reporta o sucesso da operacao ou uma mensagem de erro caso o ficheiro nao exista ou nao possa ser lido.
+ * @param sm referencia para a estrutura principal do supermercado que ira receber os dados
+ * @param areasAtivas referencia para o ponteiro da lista ligada de areas do sistema (para sincronizacao)
+ * @param nAreasAtivas referencia para o contador do total de areas do sistema
+ */
 void interfaceCarregar(SuperMercado& sm, NoString*& areasAtivas, int& nAreasAtivas) {
     string ficheiro;
     cout << "-> Introduza o nome do ficheiro a carregar (ex: save1.txt): ";
@@ -212,7 +275,12 @@ void interfaceCarregar(SuperMercado& sm, NoString*& areasAtivas, int& nAreasAtiv
     }
 }
 
-
+/**
+ * exibe e gere o menu interativo de gestao do supermercado para o utilizador administrador.
+ * @param sm referencia para a estrutura principal do supermercado
+ * @param areasAtivas referencia para o ponteiro da lista ligada de areas do sistema
+ * @param nAreasAtivas referencia para o contador do total de areas registadas
+ */
 void menuGestao(SuperMercado& sm, NoString*& areasAtivas, int& nAreasAtivas) {
     int opcaoMenu;
 
