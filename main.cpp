@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
 
     int nAreas, nNomes, nFornec;
 
-    // Carregar os ficheiros
+    // Carregar os ficheiros globais
     NoString* areas = carregarStrings("areas.txt", nAreas);
     NoString* nomes = carregarStrings("produtos.txt", nNomes);
     NoString* fornecedores = carregarStrings("fornecedores.txt", nFornec);
@@ -30,12 +30,18 @@ int main(int argc, char* argv[]) {
     Nova(super.armazem);
     super.inicioSectores = nullptr;
     super.campanhas = nullptr;
+    super.topoHistorico = nullptr; // Inicia a pilha do histórico a vazio
 
     bool carregado = false;
 
-    //verifica se foi passado um save
+    // --- VARIÁVEIS PARA AS ÁREAS ATIVAS (A CORREÇÃO ESTÁ AQUI) ---
+    NoString* areasAtivas = nullptr;
+    int nAreasAtivas = 0;
+
+    // Verifica se foi passado um save por argumento
     if (argc >= 2) {
-        if (carregarSupermercado(super, argv[1])) {
+        // Agora já passa as areasAtivas para reconstruir o menu a partir do save
+        if (carregarSupermercado(super, argv[1], areasAtivas, nAreasAtivas)) {
             cout << "Estado carregado com sucesso.\n";
             carregado = true;
         } else {
@@ -45,7 +51,8 @@ int main(int argc, char* argv[]) {
 
     // Se não carregou nenhum save, gera o supermercado do zero
     if (!carregado) {
-        inicializarSupermercado(super, areas, nAreas, nomes, nNomes, fornecedores, nFornec);
+        // Agora já passa as areasAtivas para garantir que gera produtos certos
+        inicializarSupermercado(super, areas, nAreas, areasAtivas, nAreasAtivas, nomes, nNomes, fornecedores, nFornec);
     }
 
     char opcao;
@@ -58,25 +65,29 @@ int main(int argc, char* argv[]) {
         imprimirProdutos(super);
 
         // Menu Gestao
-        cout << "(s)eguinte  **********  (g)estao  **********  (q)sair\n";
+        cout << "(s)eguinte  ********** (g)estao  ********** (q)sair\n";
         cout << "Seleccione a sua opcao: ";
 
         cin >> opcao;
         cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
         if (opcao == 's' || opcao == 'S') {
-            simularCiclo(super,areas,nAreas, nomes, nNomes, fornecedores, nFornec);
+            // Agora o ciclo também respeita as áreas ativas!
+            simularCiclo(super, areasAtivas, nAreasAtivas, nomes, nNomes, fornecedores, nFornec);
         }
         else if (opcao == 'g' || opcao == 'G') {
-            menuGestao(super, areas, nAreas);
+            menuGestao(super, areasAtivas, nAreasAtivas);
         }
 
     } while (opcao != 'q' && opcao != 'Q');
 
 
+    // Limpeza de memória antes de fechar o programa
     libertarStrings(areas);
     libertarStrings(nomes);
     libertarStrings(fornecedores);
+    libertarStrings(areasAtivas); // Liberta a lista das áreas ativas
+    limparSupermercado(super);    // Limpa armazém, sectores, árvores e pilha
 
     return 0;
 }

@@ -136,17 +136,15 @@ void gerarProdutosParaArmazem(SuperMercado& sm, int quantidade, NoString* areas,
     }
 }
 
-void inicializarSupermercado(SuperMercado& sm, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
+void inicializarSupermercado(SuperMercado& sm, NoString* areas, int nAreas, NoString*& areasAtivas, int& nAreasAtivas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec) {
     sm.inicioSectores = nullptr;
     Nova(sm.armazem);
 
     int nSetores = gerarAleatorio(8, 12);
-    NoString* areasAtivas = nullptr;
-    int nAreasAtivas = 0;
     char id = 'A';
 
     for (int i = 0; i < nSetores; i++) {
-        Sector* novoSetor = new Sector; // Substitui o NoSetor do Sérgio
+        Sector* novoSetor = new Sector;
         novoSetor->id = id++;
         novoSetor->capacidade = gerarAleatorio(5, 10);
         novoSetor->ocupacao = 0;
@@ -158,23 +156,35 @@ void inicializarSupermercado(SuperMercado& sm, NoString* areas, int nAreas, NoSt
         // Ciclo insiste ate que o utilizador escreva um nome valido
         do {
             cout << "Nome do responsavel pelo sector " << novoSetor->id << " (" << novoSetor->area << "): ";
-            getline(cin, novoSetor->responsavel); // Removido o '>> ws'
+            getline(cin, novoSetor->responsavel);
 
             if (novoSetor->responsavel.empty()) {
                 cout << "[ERRO] O nome do responsavel e obrigatorio!\n";
             }
         } while (novoSetor->responsavel.empty());
 
-        novoSetor->prox = sm.inicioSectores;
-        sm.inicioSectores = novoSetor;
+        // Inserir no final da lista ligada de sectores para manter a ordem ID (A, B, C...)
+        novoSetor->prox = nullptr;
+        if (sm.inicioSectores == nullptr) {
+            sm.inicioSectores = novoSetor;
+        } else {
+            Sector* aux = sm.inicioSectores;
+            while (aux->prox != nullptr) {
+                aux = aux->prox;
+            }
+            aux->prox = novoSetor;
+        }
 
+        // Regista esta área como "Ativa" no sistema
         if (!existeString(areasAtivas, novoSetor->area)) {
             adicionarStringFim(areasAtivas, novoSetor->area, nAreasAtivas);
         }
     }
 
+    // Gera os 50 produtos iniciais usando APENAS as áreas ativas!
     gerarProdutosParaArmazem(sm, 50, areasAtivas, nAreasAtivas, nomes, nNomes, fornecedores, nFornec);
-    libertarStrings(areasAtivas);
+
+    // NOTA: O libertarStrings(areasAtivas) foi removido daqui porque o Menu vai precisar da lista!
 }
 
 void venderProdutos(SuperMercado& sm) {
@@ -216,11 +226,17 @@ void transferirArmazemParaSetores(SuperMercado& sm, int maxTransferir) {
         Sai(sm.armazem);
 
         Sector* setorAlvo = nullptr;
+        int maxEspacoLivre = 0; // Vai garantir que distribuímos bem o stock
 
         for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
-            if (s->area == prod.area && s->ocupacao < s->capacidade) {
-                setorAlvo = s;
-                break;
+            if (s->area == prod.area) {
+                int espacoLivre = s->capacidade - s->ocupacao;
+
+                // Se este sector tem mais espaço livre que o anterior, passa a ser o alvo
+                if (espacoLivre > maxEspacoLivre) {
+                    maxEspacoLivre = espacoLivre;
+                    setorAlvo = s;
+                }
             }
         }
 
@@ -239,46 +255,32 @@ void atualizarCampanhas(SuperMercado& sm) {
     Campanha* anterior = nullptr;
 
     while (atual != nullptr) {
-        atual->duracao--; // Passou um ciclo! Decrementa a duracao.
-
-        // Se a duracao chegou ao fim, a campanha expira
+        atual->duracao--;
         if (atual->duracao <= 0) {
-            string areaExpirada = atual->area;
-            cout << "\n[CAMPANHA] A campanha na area '" << areaExpirada << "' terminou! Precos originais restaurados.\n";
-
-            // Restaurar precos nos Sectores
+            cout << "\n[CAMPANHA] A campanha na area '" << atual->area << "' terminou!\n";
+            // Restaura prateleiras
             for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
-                if (s->area == areaExpirada) {
+                if (s->area == atual->area) {
                     for (NoProduto* p = s->inicioProdutos; p != nullptr; p = p->prox) {
                         p->info.preco = p->info.precoOriginal;
                     }
                 }
             }
-
-            // Restaurar precos no Armazem
+            // Restaura armazem
             int total = Comprimento(sm.armazem);
             for (int i = 0; i < total; i++) {
                 Produto p = Primeiro(sm.armazem);
                 Sai(sm.armazem);
-
-                if (p.area == areaExpirada) {
-                    p.preco = p.precoOriginal;
-                }
-
+                if (p.area == atual->area) p.preco = p.precoOriginal;
                 Entra(sm.armazem, p);
             }
-
-            // Remover a campanha da lista ligada com seguranca
+            // Remove nó da lista
             Campanha* apagar = atual;
-            if (anterior == nullptr) {
-                sm.campanhas = atual->prox;
-                atual = sm.campanhas;
-            } else {
-                anterior->prox = atual->prox;
-                atual = atual->prox;
-            }
-            delete apagar;
+            if (anterior == nullptr) sm.campanhas = atual->prox;
+            else anterior->prox = atual->prox;
 
+            atual = atual->prox;
+            delete apagar;
         } else {
             anterior = atual;
             atual = atual->prox;
@@ -304,8 +306,49 @@ void simularCiclo(SuperMercado& sm, NoString* areas, int nAreas, NoString* nomes
 
 
 
-bool removerProdutoGlobal(SuperMercado& sm, const string& nome) {
-    bool encontrou=false;
+int removerProdutoGlobal(SuperMercado& sm, const string& nome) {
+    // 1. DESCOBRIR A ÁREA DO PRODUTO (antes de apagar qualquer coisa)
+    string areaDoProduto = "";
+
+    // Procurar nos sectores
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        for (NoProduto* p = s->inicioProdutos; p != nullptr; p = p->prox) {
+            if (p->info.nome == nome) {
+                areaDoProduto = p->info.area;
+                break;
+            }
+        }
+        if (!areaDoProduto.empty()) break;
+    }
+
+    // Se não encontrou nas prateleiras, procurar no armazém
+    if (areaDoProduto.empty()) {
+        int total = Comprimento(sm.armazem);
+        for (int i = 0; i < total; i++) {
+            Produto p = Primeiro(sm.armazem);
+            Sai(sm.armazem);
+            if (p.nome == nome && areaDoProduto.empty()) {
+                areaDoProduto = p.area;
+            }
+            Entra(sm.armazem, p);
+        }
+    }
+
+    // Se a área continua vazia, é porque o produto não existe na loja
+    if (areaDoProduto.empty()) return 0; // 0 = Não encontrado
+
+    // 2. VERIFICAR SE A ÁREA TEM UMA CAMPANHA ATIVA
+    for (Campanha* c = sm.campanhas; c != nullptr; c = c->prox) {
+        if (c->area == areaDoProduto) {
+            return -1; // -1 = Bloqueado (Em Campanha!)
+        }
+    }
+
+    // =========================================================
+    // 3. REMOÇÃO EFETIVA (Se passou a validação da campanha)
+    // =========================================================
+
+    // Remover nas prateleiras
     for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
         NoProduto* atual = s->inicioProdutos;
         NoProduto* anterior = nullptr;
@@ -313,12 +356,14 @@ bool removerProdutoGlobal(SuperMercado& sm, const string& nome) {
 
         while (atual != nullptr) {
             if (atual->info.nome == nome) {
-                encontrou=true;
                 NoProduto* apagar = atual;
                 if (anterior) anterior->prox = atual->prox;
                 else s->inicioProdutos = atual->prox;
 
                 atual = atual->prox;
+
+                // Guarda no histórico para o UNDO
+                pushHistorico(sm, apagar->info);
                 delete apagar;
             } else {
                 anterior = atual;
@@ -329,6 +374,7 @@ bool removerProdutoGlobal(SuperMercado& sm, const string& nome) {
         s->ocupacao = cont;
     }
 
+    // Remover no armazém
     int total = Comprimento(sm.armazem);
     for (int i = 0; i < total; i++) {
         Produto p = Primeiro(sm.armazem);
@@ -336,12 +382,13 @@ bool removerProdutoGlobal(SuperMercado& sm, const string& nome) {
 
         if (p.nome != nome) {
             Entra(sm.armazem, p);
-        }
-        else {
-            encontrou=true;
+        } else {
+            // Guarda no histórico para o UNDO
+            pushHistorico(sm, p);
         }
     }
-    return encontrou;
+
+    return 1; // 1 = Removido com Sucesso
 }
 
 bool atualizarPrecoArmazem(SuperMercado& sm, const string& nome, int novoPreco) {
@@ -518,21 +565,19 @@ bool gravarSupermercado(SuperMercado& sm, const string& filename) {
     return true;
 }
 
-bool carregarSupermercado(SuperMercado& sm, const string& filename) {
+bool carregarSupermercado(SuperMercado& sm, const string& filename, NoString*& areas, int& nAreas) {
     ifstream in(filename);
     if (!in.is_open()) return false;
 
-    // 1. LIMPAR A MEMÓRIA ATUAL
-    // Muito importante para não misturar dados de sessões diferentes!
     limparSupermercado(sm);
 
     string linha;
     while (getline(in, linha)) {
-        if (linha.empty()) continue; // Ignora linhas em branco
+        if (linha.empty()) continue;
 
         stringstream ss(linha);
         string etiqueta;
-        getline(ss, etiqueta, '|'); // Lemos a primeira palavra até ao '|'
+        getline(ss, etiqueta, '|');
 
         if (etiqueta == "SECTOR") {
             Sector* novo = new Sector;
@@ -544,14 +589,27 @@ bool carregarSupermercado(SuperMercado& sm, const string& filename) {
             getline(ss, novo->responsavel, '|');
 
             novo->id = idStr[0];
-            novo->capacidade = stoi(capStr); // Converte string para int
-            novo->ocupacao = 0;             // Será somado à medida que carregamos produtos
+            novo->capacidade = stoi(capStr);
+            novo->ocupacao = 0;
             novo->inicioProdutos = nullptr;
             novo->raizVendas = nullptr;
+            novo->prox = nullptr; // Ficará no fim da lista
 
-            // Adicionar à lista de sectores
-            novo->prox = sm.inicioSectores;
-            sm.inicioSectores = novo;
+            // --- CORREÇÃO DA ORDEM (Adiciona ao FIM da lista) ---
+            if (sm.inicioSectores == nullptr) {
+                sm.inicioSectores = novo;
+            } else {
+                Sector* aux = sm.inicioSectores;
+                while (aux->prox != nullptr) {
+                    aux = aux->prox;
+                }
+                aux->prox = novo;
+            }
+
+            // --- SINCRONIZAÇÃO DA ÁREA ---
+            if (!existeString(areas, novo->area)) {
+                adicionarStringFim(areas, novo->area, nAreas);
+            }
 
         } else if (etiqueta == "P_SEC") {
             string idSecStr, precoStr, precoOrigStr;
@@ -569,9 +627,10 @@ bool carregarSupermercado(SuperMercado& sm, const string& filename) {
                 p.preco = stoi(precoStr);
                 p.precoOriginal = stoi(precoOrigStr);
 
-                // Usamos a tua função que já tinhas feito!
                 adicionarProdutoFim(s->inicioProdutos, p);
                 s->ocupacao++;
+
+                if (!existeString(areas, p.area)) adicionarStringFim(areas, p.area, nAreas);
             }
 
         } else if (etiqueta == "P_ARM") {
@@ -588,6 +647,8 @@ bool carregarSupermercado(SuperMercado& sm, const string& filename) {
 
             Entra(sm.armazem, p);
 
+            if (!existeString(areas, p.area)) adicionarStringFim(areas, p.area, nAreas);
+
         } else if (etiqueta == "VENDA") {
             string idSecStr, precoStr, nomeProd;
             getline(ss, idSecStr, '|');
@@ -595,10 +656,7 @@ bool carregarSupermercado(SuperMercado& sm, const string& filename) {
             getline(ss, precoStr, '|');
 
             Sector* s = encontrarSector(sm, idSecStr[0]);
-            if (s) {
-                // Usamos a tua função recursiva de inserção na árvore!
-                inserirVendaRec(s->raizVendas, stoi(precoStr), nomeProd);
-            }
+            if (s) inserirVendaRec(s->raizVendas, stoi(precoStr), nomeProd);
 
         } else if (etiqueta == "CAMP") {
             string area, percStr, durStr;
@@ -608,6 +666,8 @@ bool carregarSupermercado(SuperMercado& sm, const string& filename) {
 
             Campanha* nova = new Campanha{area, stoi(percStr), stoi(durStr), sm.campanhas};
             sm.campanhas = nova;
+
+            if (!existeString(areas, area)) adicionarStringFim(areas, area, nAreas);
         }
     }
 
@@ -649,6 +709,15 @@ void limparSupermercado(SuperMercado& sm) {
         delete auxC;
     }
     sm.campanhas = nullptr;
+
+    // Limpar Pilha de Historico
+    NoHistorico* hAtual = sm.topoHistorico;
+    while (hAtual != nullptr) {
+        NoHistorico* auxH = hAtual;
+        hAtual = hAtual->prox;
+        delete auxH;
+    }
+    sm.topoHistorico = nullptr;
 }
 
 // Função auxiliar para a árvore
@@ -675,6 +744,159 @@ Sector* encontrarSector(SuperMercado& sm, char id) {
     return nullptr;
 }
 
+int somarVendasRec(NoVenda* raiz) {
+    if (raiz == nullptr) return 0;
+    return raiz->preco + somarVendasRec(raiz->esq) + somarVendasRec(raiz->dir);
+}
+
+void relatorioFaturacaoGlobal(const SuperMercado& sm) {
+    int totalGlobal = 0;
+    cout << "\n========== FATURACAO GLOBAL ==========\n";
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        int totalSector = somarVendasRec(s->raizVendas);
+        cout << " Sector " << s->id << " (" << s->area << "): " << totalSector << " EUR\n";
+        totalGlobal += totalSector;
+    }
+    cout << "--------------------------------------\n";
+    cout << " TOTAL DA LOJA: " << totalGlobal << " EUR\n";
+    cout << "======================================\n";
+}
+
+bool fecharSector(SuperMercado& sm, char idSector) {
+    Sector* atual = sm.inicioSectores;
+    Sector* anterior = nullptr;
+
+    while (atual != nullptr) {
+        if (atual->id == idSector) {
+            // 1. Mover produtos das prateleiras de volta para o armazem
+            NoProduto* pAtual = atual->inicioProdutos;
+            while (pAtual != nullptr) {
+                Entra(sm.armazem, pAtual->info);
+                NoProduto* apagar = pAtual;
+                pAtual = pAtual->prox;
+                delete apagar;
+            }
+
+            // 2. Apagar a árvore de vendas
+            limparArvore(atual->raizVendas);
+
+            // 3. Remover Sector da lista ligada
+            if (anterior == nullptr) sm.inicioSectores = atual->prox;
+            else anterior->prox = atual->prox;
+
+            delete atual;
+            return true;
+        }
+        anterior = atual;
+        atual = atual->prox;
+    }
+    return false;
+}
 
 
+void pesquisarProduto(const SuperMercado& sm, const string& nomeProd) {
+    bool encontrou = false;
+    cout << "\nResultados para '" << nomeProd << "':\n";
 
+    // Procurar nas prateleiras (Sectores)
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        for (NoProduto* p = s->inicioProdutos; p != nullptr; p = p->prox) {
+            if (p->info.nome == nomeProd) {
+                cout << " -> Na Prateleira: Sector " << s->id << " (" << p->info.preco << " EUR)\n";
+                encontrou = true;
+            }
+        }
+    }
+
+    // Procurar no armazém (Percorrer a Fila)
+    int qtdArmazem = 0;
+    SuperMercado& smMut = const_cast<SuperMercado&>(sm);
+    int total = Comprimento(smMut.armazem);
+
+    for (int i = 0; i < total; i++) {
+        Produto p = Primeiro(smMut.armazem);
+        Sai(smMut.armazem);
+        if (p.nome == nomeProd) qtdArmazem++;
+        Entra(smMut.armazem, p);
+    }
+
+    if (qtdArmazem > 0) {
+        cout << " -> No Armazem: " << qtdArmazem << " unidade(s) a aguardar reposicao.\n";
+        encontrou = true;
+    }
+
+    if (!encontrou) cout << " -> Produto nao encontrado em lado nenhum.\n";
+}
+
+void pushHistorico(SuperMercado& sm, const Produto& p) {
+    // Alocação dinâmica do novo nó
+    NoHistorico* novo = new NoHistorico;
+    novo->info = p;
+    novo->prox = sm.topoHistorico; // O próximo aponta para o antigo topo
+
+    sm.topoHistorico = novo; // O topo passa a ser este novo nó
+}
+
+
+// Desempilha o último produto removido e volta a colocá-lo no armazém (Pop / Undo)
+bool desfazerUltimaRemocao(SuperMercado& sm) {
+    // Se o histórico estiver vazio, não há nada a desfazer
+    if (sm.topoHistorico == nullptr) {
+        return false;
+    }
+
+    // Guarda os dados do nó que está no topo
+    NoHistorico* apagar = sm.topoHistorico;
+    Produto pRecuperado = apagar->info;
+
+    // O topo avança para o elemento seguinte na pilha
+    sm.topoHistorico = apagar->prox;
+
+    // Liberta a memória do nó do histórico
+    delete apagar;
+
+    // Devolve o produto recuperado à fila do armazém
+    Entra(sm.armazem, pRecuperado);
+
+    cout << "[UNDO] O produto '" << pRecuperado.nome << "' foi recuperado para o armazem!\n";
+    return true;
+}
+
+void adicionarNovoSector(SuperMercado& sm, const string& area, const string& resp, int cap) {
+    // Criar o novo nó
+    Sector* novo = new Sector;
+
+    // Calcular o próximo ID (Letras A, B, C...)
+    char ultimoID = 64; // 64 é o caractere imediatamente antes do 'A' na tabela ASCII
+    for (Sector* s = sm.inicioSectores; s != nullptr; s = s->prox) {
+        if (s->id > ultimoID) {
+            ultimoID = s->id;
+        }
+    }
+
+    if (ultimoID == 64) {
+        novo->id = 'A';
+    } else {
+        novo->id = ultimoID + 1;
+    }
+
+    // Preencher os dados
+    novo->area = area;
+    novo->responsavel = resp;
+    novo->capacidade = cap;
+    novo->ocupacao = 0;
+    novo->inicioProdutos = nullptr;
+    novo->raizVendas = nullptr;
+
+    // Inserir à cabeça da lista ligada de sectores
+    novo->prox = nullptr;
+    if (sm.inicioSectores == nullptr) {
+        sm.inicioSectores = novo;
+    } else {
+        Sector* aux = sm.inicioSectores;
+        while (aux->prox != nullptr) {
+            aux = aux->prox;
+        }
+        aux->prox = novo;
+    }
+}

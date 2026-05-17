@@ -56,10 +56,17 @@ struct Campanha {
     Campanha* prox;
 };
 
+
+struct NoHistorico {
+    Produto info;
+    NoHistorico* prox;
+};
+
 struct SuperMercado {
-    Sector* inicioSectores;     // Aponta diretamente para o primeiro Setor
+    Sector* inicioSectores;
     FilaArmazem armazem;
     Campanha* campanhas;
+    NoHistorico* topoHistorico; // NOVO: Topo da pilha de histórico
 };
 
 
@@ -85,7 +92,7 @@ void adicionarProdutoFim(NoProduto*& inicio, const Produto& p);
 void inicializarArvore(NoVenda*& raiz);
 void inserirVendaRec(NoVenda*& raiz, int preco, const string& nome);
 
-void inicializarSupermercado(SuperMercado& sm, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec);
+void inicializarSupermercado(SuperMercado& sm, NoString* areas, int nAreas, NoString*& areasAtivas, int& nAreasAtivas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec);
 
 
 void gerarProdutosParaArmazem(SuperMercado& sm, int quantidade, NoString* areas, int nAreas, NoString* nomes, int nNomes, NoString* fornecedores, int nFornec);
@@ -96,11 +103,11 @@ void venderProdutos(SuperMercado& sm);
 void transferirArmazemParaSetores(SuperMercado& sm, int maxTransferir);
 
 // Funções de Gestão (em falta a de gravar e carregar)
-bool removerProdutoGlobal(SuperMercado& sm, const string& nome);
+int removerProdutoGlobal(SuperMercado& sm, const string& nome);
 bool atualizarPrecoArmazem(SuperMercado& sm, const string& nome, int novoPreco);
 bool adicionarCampanha(SuperMercado& sm, const string& area, int percentagem, int duracao);
 bool gravarSupermercado( SuperMercado& sm, const string& filename);
-bool carregarSupermercado(SuperMercado& sm, const string& filename);
+bool carregarSupermercado(SuperMercado& sm, const string& filename, NoString*& areas, int& nAreas);
 
 
 void imprimirProdutos(const SuperMercado& sm);
@@ -112,4 +119,12 @@ void limparSupermercado(SuperMercado& sm);
 void limparArvore(NoVenda* raiz);
 void gravarVendasRec(NoVenda* raiz, char sectorID, ofstream& out);
 Sector* encontrarSector(SuperMercado& sm, char id);
+void adicionarNovoSector(SuperMercado& sm, const string& area, const string& resp, int cap);
+
+int somarVendasRec(NoVenda* raiz);
+void relatorioFaturacaoGlobal(const SuperMercado& sm);
+bool fecharSector(SuperMercado& sm, char idSector);
+void pesquisarProduto(const SuperMercado& sm, const string& nomeProd);
+void pushHistorico(SuperMercado& sm, const Produto& p);
+bool desfazerUltimaRemocao(SuperMercado& sm);
 #endif
