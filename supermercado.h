@@ -122,7 +122,6 @@ Sector* encontrarSector(SuperMercado& sm, char id);
 void adicionarNovoSector(SuperMercado& sm, const string& area, const string& resp, int cap);
 
 int somarVendasRec(NoVenda* raiz);
-void relatorioFaturacaoGlobal(const SuperMercado& sm);
 bool fecharSector(SuperMercado& sm, char idSector);
 void pesquisarProduto(const SuperMercado& sm, const string& nomeProd);
 void pushHistorico(SuperMercado& sm, const Produto& p);
